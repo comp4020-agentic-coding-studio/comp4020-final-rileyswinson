@@ -1,6 +1,9 @@
 // The hallway: four doors whose occupied/vacant state comes live from the
 // server. No accounts; a random id in localStorage is the only identity.
 
+import { creak, knock, piss, plop, flush } from "./sound.js";
+import { room } from "./room.js";
+
 const DOOR_COUNT = 4;
 
 const clientId = (() => {
@@ -17,12 +20,12 @@ const clientId = (() => {
 })();
 
 const hallway = document.getElementById("hallway");
-const room = document.getElementById("room");
 const status = hallway.querySelector(".status");
 const template = document.getElementById("door-template");
 
 let state = { doors: [], you: null };
 let clockOffset = 0; // server time minus local time
+let enteredAt = 0; // server time when you went in, for how much of the visit is left
 let socket;
 
 // --- build the doors -------------------------------------------------------
@@ -69,11 +72,14 @@ function tryEnter(i) {
   socket?.send(JSON.stringify({ type: "enter", door: i }));
 }
 
-function rattle(i) {
-  const { door } = stalls[i];
-  door.classList.remove("rattle");
+function restart(door, cls) {
+  door.classList.remove(cls);
   void door.offsetWidth; // restart the animation
-  door.classList.add("rattle");
+  door.classList.add(cls);
+}
+
+function rattle(i) {
+  restart(stalls[i].door, "rattle");
   knock();
 }
 
@@ -92,8 +98,8 @@ function render() {
 
   const inside = state.you !== null;
   hallway.hidden = inside;
-  room.hidden = !inside;
-  if (inside) room.querySelector(".room-name").textContent = `Stall ${state.you + 1}`;
+  if (inside) room.enter();
+  else room.exit();
   tick();
   // the first real state lands with transitions off; flush it before they
   // come back, or every door animates from the "occupied" placeholder
@@ -113,13 +119,15 @@ function tick() {
     stalls[i].countdown.textContent = d.occupied && d.opensAt ? `opens in ${remaining(d.opensAt)}` : "";
   });
   const mine = state.you !== null && state.doors[state.you];
-  if (mine) room.querySelector(".room-timer").textContent = `The door opens in ${remaining(mine.opensAt)}`;
+  if (mine) {
+    const left = (mine.opensAt - (Date.now() + clockOffset)) / Math.max(1, mine.opensAt - enteredAt);
+    room.tick(`the door opens in ${remaining(mine.opensAt)}`, left);
+  }
 }
 setInterval(tick, 1000);
 
-room.querySelector(".leave").addEventListener("click", () => {
-  socket?.send(JSON.stringify({ type: "leave" }));
-});
+room.onLeave = () => socket?.send(JSON.stringify({ type: "leave" }));
+room.onNoise = (kind) => socket?.send(JSON.stringify({ type: "noise", kind }));
 
 // --- camera ------------------------------------------------------------------
 // The corridor is wider than the screen on purpose. The mouse pans it, a
@@ -204,6 +212,7 @@ function connect(retry = 500) {
       const wasInside = state.you !== null;
       state = msg;
       clockOffset = msg.now - Date.now();
+      if (!wasInside && state.you !== null) enteredAt = msg.now;
       render();
       if (wasInside && state.you === null) status.textContent = "";
     } else if (msg.type === "denied") {
@@ -212,6 +221,12 @@ function connect(retry = 500) {
       status.textContent = "Someone got there first.";
     } else if (msg.type === "timeup") {
       status.textContent = "Time's up. The door swung open.";
+    } else if (msg.type === "noise") {
+      // heard through the door: low, and the door shivers a little
+      if (msg.kind === "piss") piss({ muffled: true });
+      else if (msg.kind === "shit") plop({ muffled: true });
+      else flush({ full: msg.kind === "full", muffled: true });
+      if (stalls[msg.door]) restart(stalls[msg.door].door, "noisy");
     }
   });
 
@@ -221,66 +236,3 @@ function connect(retry = 500) {
   });
 }
 connect();
-
-// --- sound ------------------------------------------------------------------
-// Synthesised, so there are no audio files. Browsers only allow sound after
-// the first click or key press, so the very first hover is silent.
-
-let audio;
-function ctx() {
-  audio ??= new AudioContext();
-  return audio.state === "running" ? audio : null;
-}
-addEventListener("pointerdown", () => {
-  audio ??= new AudioContext();
-  audio.resume();
-}, { once: true });
-
-// a creak is stick-slip: a rapid train of tiny clicks whose rate wanders
-function creak() {
-  const ac = ctx();
-  if (!ac) return;
-  const dur = 0.9;
-  const t0 = ac.currentTime;
-  const filter = ac.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.value = 700;
-  filter.Q.value = 6;
-  const gain = ac.createGain();
-  gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(0.5, t0 + 0.08);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  filter.connect(gain).connect(ac.destination);
-
-  let t = t0;
-  while (t < t0 + dur) {
-    const click = ac.createOscillator();
-    click.type = "sawtooth";
-    click.frequency.value = 180 + Math.random() * 120;
-    const env = ac.createGain();
-    env.gain.setValueAtTime(0.6, t);
-    env.gain.exponentialRampToValueAtTime(0.001, t + 0.012);
-    click.connect(env).connect(filter);
-    click.start(t);
-    click.stop(t + 0.015);
-    // the rate slows as the door swings
-    t += 0.008 + ((t - t0) / dur) * 0.03 + Math.random() * 0.006;
-  }
-}
-
-function knock() {
-  const ac = ctx();
-  if (!ac) return;
-  const t0 = ac.currentTime;
-  for (const offset of [0, 0.09]) {
-    const osc = ac.createOscillator();
-    osc.frequency.setValueAtTime(140, t0 + offset);
-    osc.frequency.exponentialRampToValueAtTime(60, t0 + offset + 0.08);
-    const env = ac.createGain();
-    env.gain.setValueAtTime(0.5, t0 + offset);
-    env.gain.exponentialRampToValueAtTime(0.001, t0 + offset + 0.1);
-    osc.connect(env).connect(ac.destination);
-    osc.start(t0 + offset);
-    osc.stop(t0 + offset + 0.12);
-  }
-}

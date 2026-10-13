@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Stalls</title>
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/room.css" />
   </head>
   <body class="loading">
     <main id="hallway" aria-label="A corridor of four toilet stalls">
@@ -23,12 +24,34 @@
     </main>
 
     <section id="room" hidden aria-label="Inside the stall">
-      <div class="room-inner">
-        <p class="room-name"></p>
-        <p class="room-timer" aria-live="off"></p>
-        <p class="room-note">The walls are bare for now.</p>
-        <button class="leave" type="button">Unlock and leave</button>
+      <div class="viewport">
+        <div class="camera">
+          <div class="world">
+            <!-- room.js builds the stall in here -->
+          </div>
+        </div>
       </div>
+      <div class="grain" aria-hidden="true"></div>
+      <div class="room-vignette" aria-hidden="true"></div>
+      <nav class="turn" aria-label="Look around">
+        <button class="arrow left" type="button" data-turn="left" aria-label="Turn left">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+        </button>
+        <button class="arrow right" type="button" data-turn="right" aria-label="Turn right">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+        </button>
+        <button class="arrow up" type="button" data-turn="up" aria-label="Look up">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+        </button>
+        <button class="arrow down" type="button" data-turn="down" aria-label="Look down">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+        </button>
+      </nav>
+      <div class="hud">
+        <p class="room-timer" aria-live="off"></p>
+        <div class="actions"></div>
+      </div>
+      <div class="fade" aria-hidden="true"></div>
     </section>
 
     <template id="door-template">

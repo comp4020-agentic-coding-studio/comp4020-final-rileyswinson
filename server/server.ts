@@ -57,6 +57,10 @@ const server = createServer(async (req, res) => {
 const wss = new WebSocketServer({ server, path: "/live" });
 const sockets = new Map<WebSocket, string>();
 const dropTimers = new Map<string, NodeJS.Timeout>();
+// one noise per person per second and a half; nobody needs more
+const NOISE_GAP_MS = 1500;
+const NOISES = new Set(["piss", "shit", "half", "full"]);
+const lastNoise = new Map<string, number>();
 
 const send = (ws: WebSocket, msg: unknown) => {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -91,7 +95,7 @@ wss.on("connection", (ws, req) => {
   send(ws, doorsMsg(id));
 
   ws.on("message", (raw) => {
-    let msg: { type?: string; door?: number };
+    let msg: { type?: string; door?: number; kind?: string };
     try {
       msg = JSON.parse(String(raw));
     } catch {
@@ -101,6 +105,15 @@ wss.on("connection", (ws, req) => {
       if (!doors.enter(id, msg.door)) send(ws, { type: "denied", door: msg.door });
     } else if (msg.type === "leave") {
       doors.leave(id);
+    } else if (msg.type === "noise" && NOISES.has(msg.kind ?? "")) {
+      // what happens in a stall is heard outside it, within reason
+      const door = doors.doorOf(id);
+      const now = Date.now();
+      if (door === null || now - (lastNoise.get(id) ?? 0) < NOISE_GAP_MS) return;
+      lastNoise.set(id, now);
+      for (const [other, otherId] of sockets) {
+        if (otherId !== id) send(other, { type: "noise", door, kind: msg.kind });
+      }
     }
   });
 

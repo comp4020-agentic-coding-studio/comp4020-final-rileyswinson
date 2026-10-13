@@ -1,0 +1,383 @@
+/* Inside a stall. The room is a box of six planes and a few rigid boxes,
+   flat-shaded: every face of a box is one colour, lit from overhead. */
+
+#room {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  color: #e6e6dc;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+#room[hidden] {
+  display: none;
+}
+
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 600px;
+  perspective-origin: 50% 50%;
+}
+
+/* the camera's origin is the middle of the screen; room.js sets its
+   transform to the inverse of where the viewer stands and looks */
+.camera {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0 0;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.55, 0, 0.15, 1);
+  will-change: transform;
+}
+
+.world,
+.box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+}
+
+.face {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0 0;
+  backface-visibility: hidden;
+  background-color: var(--mat, #888);
+  background-image: linear-gradient(var(--tint, transparent), var(--tint, transparent));
+}
+
+/* one light, overhead: tops bright, sides dim, undersides dark */
+.f-top { --tint: rgb(255 255 240 / 0.16); }
+.f-front { --tint: transparent; }
+.f-back { --tint: rgb(0 0 0 / 0.12); }
+.f-left { --tint: rgb(0 0 0 / 0.28); }
+.f-right { --tint: rgb(0 0 0 / 0.2); }
+.f-bottom { --tint: rgb(0 0 0 / 0.55); }
+
+/* --- materials -------------------------------------------------------------- */
+
+.ceramic {
+  --mat: #d9d6ca;
+}
+
+.seat {
+  --mat: #cfccc1;
+}
+
+.seat .f-top {
+  --tint: rgb(255 255 240 / 0.14);
+  background-image:
+    radial-gradient(ellipse 27% 31% at 50% 54%, #060606 0 97%, transparent 100%),
+    linear-gradient(var(--tint), var(--tint));
+}
+
+.plate {
+  --mat: #8d908d;
+}
+
+.plate .f-front {
+  background-image:
+    linear-gradient(#b8bbb7, #b8bbb7) 27% 50% / 30% 46% no-repeat,
+    linear-gradient(#b8bbb7, #b8bbb7) 73% 50% / 30% 46% no-repeat;
+}
+
+.chrome {
+  --mat: #9a9d9a;
+}
+
+.roll {
+  --mat: #e6e4dc;
+}
+
+/* the end of the roll: a tube, and the paper wound round it */
+.roll .f-left {
+  background-image:
+    radial-gradient(circle, #4a463f 0 17%, transparent 18%),
+    repeating-radial-gradient(circle, transparent 0 3px, rgb(0 0 0 / 0.1) 3px 4px),
+    linear-gradient(var(--tint), var(--tint));
+}
+
+.plastic {
+  --mat: #2b2b2b;
+}
+
+.lamp {
+  --mat: #f6f6ec;
+}
+
+.lamp .face {
+  --tint: transparent;
+}
+
+.lamp .f-bottom {
+  box-shadow: 0 0 140px 50px rgb(255 255 235 / 0.2);
+}
+
+/* --- the surfaces ---------------------------------------------------------------- */
+
+.surface {
+  background-image: none;
+}
+
+/* tiles behind the toilet, 15 cm, with the light falling from above */
+.surface.back {
+  background:
+    radial-gradient(70% 45% at 50% 0%, rgb(255 255 240 / 0.12), transparent),
+    repeating-linear-gradient(90deg, #1c1f1b 0 2px, transparent 2px 75px),
+    repeating-linear-gradient(0deg, #1c1f1b 0 2px, transparent 2px 75px),
+    #30342e;
+}
+
+/* the partitions: painted board, one a shade lighter than the other */
+.surface.left {
+  background:
+    radial-gradient(60% 50% at 60% 0%, rgb(255 255 240 / 0.08), transparent),
+    linear-gradient(90deg, #212420, #272a25 50%, #222521);
+}
+
+.surface.right {
+  background:
+    radial-gradient(60% 50% at 40% 0%, rgb(255 255 240 / 0.08), transparent),
+    linear-gradient(90deg, #262925, #2b2e29 50%, #262925);
+}
+
+/* 30 cm floor tiles */
+.surface.ground {
+  background:
+    radial-gradient(45% 45% at 50% 40%, rgb(255 255 240 / 0.07), transparent),
+    repeating-linear-gradient(90deg, #0c0c0c 0 3px, transparent 3px 150px),
+    repeating-linear-gradient(0deg, #0c0c0c 0 3px, transparent 3px 150px),
+    #171717;
+}
+
+.surface.ceiling {
+  background: #111;
+}
+
+/* the back of the door: the same planks as outside, seen from in here */
+.surface.exit {
+  background:
+    radial-gradient(60% 40% at 50% 0%, rgb(255 240 210 / 0.06), transparent),
+    linear-gradient(90deg, transparent 23%, rgb(255 230 200 / 0.14) 23%, #000 calc(23% + 2px), transparent calc(23% + 6px)),
+    linear-gradient(90deg, transparent 46%, rgb(255 230 200 / 0.1) 46%, #000 calc(46% + 2px), transparent calc(46% + 6px)),
+    linear-gradient(90deg, transparent 64%, rgb(255 230 200 / 0.15) 64%, #000 calc(64% + 2px), transparent calc(64% + 6px)),
+    linear-gradient(90deg, transparent 83%, rgb(255 230 200 / 0.09) 83%, #000 calc(83% + 2px), transparent calc(83% + 6px)),
+    repeating-linear-gradient(90deg, rgb(255 220 170 / 0.03) 0 2px, transparent 2px 13px),
+    repeating-linear-gradient(89.5deg, rgb(255 220 170 / 0.02) 0 2px, transparent 2px 23px),
+    linear-gradient(90deg, #16120e 23%, #120e0a 23% 46%, #19140f 46% 64%, #14100c 64% 83%, #17130e 83%);
+}
+
+/* the latch from inside: the hinge is on the left in here, so it sits on the
+   right, and it reads occupied because you locked it. Clicking it is leaving. */
+.surface.exit .lock {
+  --screw: 14px;
+  top: 54%;
+  left: auto;
+  right: 12%;
+  width: 36%;
+  height: 2.4rem;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.surface.exit .lock::before {
+  background: var(--occupied);
+}
+
+.surface.exit .knob {
+  left: var(--screw);
+  right: 50%;
+}
+
+.surface.exit .lock:hover .knob,
+.surface.exit .lock:focus-visible .knob {
+  left: 30%;
+  right: 30%;
+}
+
+.surface.exit .lock-label {
+  translate: 100% 0;
+  font-size: 0.75rem;
+}
+
+/* --- looking around ------------------------------------------------------------ */
+
+.turn .arrow {
+  position: absolute;
+  width: 3.2rem;
+  height: 3.2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #e6e6dc;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  transition: opacity 0.35s ease, translate 0.35s ease;
+}
+
+.turn .arrow.on {
+  opacity: 0.5;
+  pointer-events: auto;
+}
+
+.turn .arrow.on:hover,
+.turn .arrow.on:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+.arrow.left {
+  left: 1rem;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.arrow.left.on:hover {
+  translate: -0.3rem -50%;
+}
+
+.arrow.right {
+  right: 1rem;
+  top: 50%;
+  translate: 0 -50%;
+}
+
+.arrow.right svg {
+  rotate: 180deg;
+}
+
+.arrow.right.on:hover {
+  translate: 0.3rem -50%;
+}
+
+.arrow.up {
+  top: 1rem;
+  left: 50%;
+  translate: -50% 0;
+}
+
+.arrow.up svg {
+  rotate: 90deg;
+}
+
+.arrow.up.on:hover {
+  translate: -50% -0.3rem;
+}
+
+.arrow.down {
+  bottom: 4.5rem;
+  left: 50%;
+  translate: -50% 0;
+}
+
+.arrow.down svg {
+  rotate: -90deg;
+}
+
+.arrow.down.on:hover {
+  translate: -50% 0.3rem;
+}
+
+/* --- the few words on screen ---------------------------------------------------- */
+
+.hud {
+  position: absolute;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: 1.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  font-size: 0.78rem;
+}
+
+.room-timer {
+  margin: 0;
+  opacity: 0.55;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actions button {
+  padding: 0.5rem 0.95rem;
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid rgb(230 230 220 / 0.35);
+  border-radius: 2px;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.actions button:hover,
+.actions button:focus-visible {
+  border-color: #e6e6dc;
+  background: rgb(255 255 255 / 0.07);
+}
+
+.actions.busy button:not(.always) {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* --- the picture ----------------------------------------------------------------- */
+
+.room-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgb(0 0 0 / 0.8));
+}
+
+/* film grain, so the flat colours don't band */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.09;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+}
+
+/* black until the first view has landed */
+.fade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 1.1s ease;
+}
+
+#room.in .fade {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camera {
+    transition-duration: 0.01s !important;
+  }
+}

@@ -14,8 +14,14 @@ state reaches everyone else in the hallway as it changes, with no reload.
 
 ## Inside
 
-Inside, you'll be able to draw on the walls and leave stickers. For now the
-room is a placeholder with a timer and a way out.
+The stall is a small box you look around from fixed spots, the way a
+point-and-click works: chevrons at the screen's edges (or the arrow keys) turn
+you to the left partition, the right one, or the back of the door, and facing
+the toilet you can look up at the light or crouch to see under the bowl. You
+can sit down, and what you do there is heard, muffled, by everyone in the
+corridor. The latch on the back of the door lets you out.
+
+The walls are bare for now. Drawing on them is next.
 
 ## Running it
 
