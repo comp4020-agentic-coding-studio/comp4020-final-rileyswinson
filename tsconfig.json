@@ -14,7 +14,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "moduleDetection": "force",
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // node runs server/ by stripping types, so only erasable syntax is allowed
+    "erasableSyntaxOnly": true
   },
-  "include": ["*.ts", "spec", "scripts"]
+  "include": ["*.ts", "spec", "scripts", "server"]
 }

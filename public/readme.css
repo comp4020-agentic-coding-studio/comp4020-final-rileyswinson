@@ -1,0 +1,25 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #000;
+  color: #d8d8d8;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+a {
+  color: #fff;
+}
+
+img {
+  max-width: 100%;
+}

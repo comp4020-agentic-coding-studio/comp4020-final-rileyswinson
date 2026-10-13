@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stalls</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="loading">
+    <main id="hallway" aria-label="A corridor of four toilet stalls">
+      <h1 class="sr-only">Stalls</h1>
+      <div class="scene">
+        <div class="wall">
+          <div class="tube" aria-hidden="true"></div>
+          <div class="floor" aria-hidden="true"></div>
+          <div class="doors">
+            <!-- app.js fills in one door per stall -->
+          </div>
+        </div>
+      </div>
+      <div class="vignette" aria-hidden="true"></div>
+      <p class="status" role="status" aria-live="polite"></p>
+    </main>
+
+    <section id="room" hidden aria-label="Inside the stall">
+      <div class="room-inner">
+        <p class="room-name"></p>
+        <p class="room-timer" aria-live="off"></p>
+        <p class="room-note">The walls are bare for now.</p>
+        <button class="leave" type="button">Unlock and leave</button>
+      </div>
+    </section>
+
+    <template id="door-template">
+      <div class="stall">
+        <span class="number" aria-hidden="true"></span>
+        <button class="door" type="button">
+          <span class="doorway" aria-hidden="true">
+            <span class="light"></span>
+            <span class="panel">
+              <span class="lock"><span class="lock-label"></span><span class="knob"></span></span>
+            </span>
+          </span>
+          <span class="spill" aria-hidden="true"></span>
+        </button>
+        <span class="countdown" aria-hidden="true"></span>
+      </div>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
