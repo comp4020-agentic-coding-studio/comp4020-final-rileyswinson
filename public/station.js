@@ -5,6 +5,7 @@
 // picture and this browser remembers it's one of yours.
 
 import { stickers } from "./stickers.js";
+import * as sound from "./sound.js";
 
 const SIZE = 192; // the sticker's picture, px
 const MARGIN = 12; // room for the edge
@@ -143,6 +144,7 @@ function join() {
     return say("That's too small to be a sticker. Try a bigger outline.");
   }
   shape = closed(outline);
+  sound.click();
   say("");
   stage("decorate");
   render();
@@ -162,7 +164,9 @@ canvas.addEventListener("pointerdown", (e) => {
   if (shape) {
     mark = { c: ink, w: nib, p: [p] };
     marks.push(mark);
+    sound.drawing.start("pen");
   } else {
+    sound.click();
     if (el.dataset.stage !== "outline") stage("outline");
     say("");
     // a click back on the start closes it; anywhere else carries the line on
@@ -179,7 +183,9 @@ canvas.addEventListener("pointermove", (e) => {
   const list = shape ? mark?.p : outline;
   if (!list) return;
   const last = list[list.length - 1];
-  if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 2) return;
+  const moved = Math.hypot(p[0] - last[0], p[1] - last[1]);
+  if (moved < 2) return;
+  if (shape) sound.drawing.move(moved / 10);
   if (!shape) {
     // once the line has been somewhere, arriving back at the start closes it
     if (!near(p, outline[0], CLOSE * 2)) away = true;
@@ -192,6 +198,7 @@ canvas.addEventListener("pointermove", (e) => {
 function lift() {
   dragging = false;
   mark = null;
+  sound.drawing.stop();
   render();
 }
 canvas.addEventListener("pointerup", lift);
@@ -251,7 +258,7 @@ function again() {
   stage("outline");
   render();
 }
-el.querySelector(".station-again").addEventListener("click", again);
+el.querySelector(".station-again").addEventListener("click", () => again());
 el.querySelector(".station-close").addEventListener("click", () => station.close());
 
 finish.addEventListener("click", () => {

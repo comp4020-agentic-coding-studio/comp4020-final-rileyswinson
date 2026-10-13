@@ -1,7 +1,7 @@
 // The hallway: four doors whose occupied/vacant state comes live from the
 // server. No accounts; a random id in localStorage is the only identity.
 
-import { creak, knock, piss, plop, flush } from "./sound.js";
+import * as sound from "./sound.js";
 import { room } from "./room.js";
 import { stickers } from "./stickers.js";
 import { station } from "./station.js";
@@ -37,8 +37,6 @@ for (let i = 0; i < DOOR_COUNT; i++) {
   const node = template.content.firstElementChild.cloneNode(true);
   const door = node.querySelector(".door");
   door.dataset.door = String(i);
-  // optimistic default until the server answers: locked, not yet known
-  door.classList.add("occupied");
   door.addEventListener("pointerenter", () => creakOpen(i));
   door.addEventListener("pointerleave", () => swingShut(i));
   door.addEventListener("focus", () => creakOpen(i));
@@ -68,7 +66,7 @@ function creakOpen(i) {
   // with a sticker ready to go on, the door stays put so there's something to stick it to
   if (!vacant(i) || stalls[i].door.classList.contains("open") || stickers.placing) return;
   stalls[i].door.classList.add("open");
-  creak();
+  sound.creak();
 }
 
 function swingShut(i) {
@@ -77,7 +75,8 @@ function swingShut(i) {
 
 function tryEnter(i) {
   if (!vacant(i)) {
-    rattle(i);
+    // it's shut, so you knock: the server tells everyone, you included
+    send({ type: "knock", door: i });
     return;
   }
   // a tap on a touch screen has no hover, so the door creaks open on the way in
@@ -93,6 +92,7 @@ function stickOn(i, e) {
   if (u < 0 || u > 1 || v < 0 || v > 1) return;
   send({ type: "stick:outside", door: i, sticker: { id: stickers.placing, u, v, r: Math.round((Math.random() - 0.5) * 24) } });
   stickers.place(null);
+  sound.peel();
 }
 
 // everything stuck on the outside of every door
@@ -118,7 +118,6 @@ function restart(door, cls) {
 
 function rattle(i) {
   restart(stalls[i].door, "rattle");
-  knock();
 }
 
 // --- render ----------------------------------------------------------------
@@ -142,8 +141,10 @@ function render() {
     room.enter(state.you);
   } else room.exit();
   tick();
-  // the first real state lands with transitions off; flush it before they
-  // come back, or every door animates from the "occupied" placeholder
+  // The first real state: the latches stop being blank, that's flushed with
+  // transitions still off, and only then do transitions come back. Otherwise
+  // every latch fades in from whatever it was showing before anyone knew.
+  document.body.classList.remove("unknown");
   void document.body.offsetWidth;
   document.body.classList.remove("loading");
 }
@@ -161,8 +162,8 @@ function tick() {
   });
   const mine = state.you !== null && state.doors[state.you];
   if (mine) {
-    const left = (mine.opensAt - (Date.now() + clockOffset)) / Math.max(1, mine.opensAt - enteredAt);
-    room.tick(`the door opens in ${remaining(mine.opensAt)}`, left);
+    const ms = mine.opensAt - (Date.now() + clockOffset);
+    room.tick(`the door opens in ${remaining(mine.opensAt)}`, ms / Math.max(1, mine.opensAt - enteredAt), Math.ceil(ms / 1000));
   }
 }
 setInterval(tick, 1000);
@@ -303,11 +304,17 @@ function connect(retry = 500) {
       station.refused();
     } else if (msg.type === "stroke") {
       room.addStroke(msg.face, msg.stroke);
+    } else if (msg.type === "knock") {
+      // someone's knocking on a stall: everyone hears it and sees the door
+      // take it, and whoever's inside feels it a moment later
+      sound.knock();
+      rattle(msg.door);
+      if (state.you === msg.door) room.shake();
     } else if (msg.type === "noise") {
       // heard through the door: low, and the door shivers a little
-      if (msg.kind === "piss") piss({ muffled: true });
-      else if (msg.kind === "shit") plop({ muffled: true });
-      else flush({ full: msg.kind === "full", muffled: true });
+      if (msg.kind === "piss") sound.piss({ muffled: true });
+      else if (msg.kind === "shit") sound.plop({ muffled: true });
+      else sound.flush({ full: msg.kind === "full", muffled: true });
       if (stalls[msg.door]) restart(stalls[msg.door].door, "noisy");
     }
   });

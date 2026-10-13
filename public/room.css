@@ -607,23 +607,34 @@ body.sticking #room.drawing .viewport {
 }
 
 /* --- looking around ------------------------------------------------------------ */
+/* The chevrons sit at the screen's edges, each on a soft dark pool, so they
+   read over a wall that's been drawn all over, and each is a good deal
+   bigger to the finger than it is to the eye. */
 
 .turn .arrow {
   position: absolute;
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 7rem;
+  height: 7rem;
   padding: 0;
   border: 0;
   background: none;
-  color: #e6e6dc;
+  color: #f2f2ea;
   opacity: 0;
   pointer-events: none;
   cursor: pointer;
   transition: opacity 0.35s ease, translate 0.35s ease;
 }
 
+.turn .arrow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.3) 45%, transparent 70%);
+}
+
 .turn .arrow.on {
-  opacity: 0.5;
+  opacity: 0.72;
   pointer-events: auto;
 }
 
@@ -634,12 +645,15 @@ body.sticking #room.drawing .viewport {
 }
 
 .arrow svg {
-  width: 100%;
-  height: 100%;
+  position: relative;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: 1.9rem;
+  filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 10px rgb(0 0 0 / 0.8));
 }
 
 .arrow.left {
-  left: 1rem;
+  left: 0;
   top: 50%;
   translate: 0 -50%;
 }
@@ -649,7 +663,7 @@ body.sticking #room.drawing .viewport {
 }
 
 .arrow.right {
-  right: 1rem;
+  right: 0;
   top: 50%;
   translate: 0 -50%;
 }
@@ -663,7 +677,7 @@ body.sticking #room.drawing .viewport {
 }
 
 .arrow.up {
-  top: 1rem;
+  top: 0;
   left: 50%;
   translate: -50% 0;
 }
@@ -677,7 +691,7 @@ body.sticking #room.drawing .viewport {
 }
 
 .arrow.down {
-  bottom: 4.5rem;
+  bottom: 3.2rem;
   left: 50%;
   translate: -50% 0;
 }
@@ -741,6 +755,23 @@ body.sticking #room.drawing .viewport {
   opacity: 0.35;
 }
 
+/* a knock on the door: the whole view jolts, a beat after the sound */
+#room.shaken .viewport {
+  animation: knocked 0.5s linear 0.3s;
+}
+
+@keyframes knocked {
+  0% { translate: 0 0; }
+  10% { translate: -7px 3px; }
+  22% { translate: 6px -4px; }
+  34% { translate: -5px 2px; }
+  46% { translate: 5px 3px; }
+  58% { translate: -4px -2px; }
+  70% { translate: 3px 1px; }
+  84% { translate: -2px 0; }
+  100% { translate: 0 0; }
+}
+
 /* --- the picture ----------------------------------------------------------------- */
 
 /* the dark at the edges: wide when you arrive, and closing in as the clock
@@ -786,5 +817,9 @@ body.sticking #room.drawing .viewport {
 @media (prefers-reduced-motion: reduce) {
   .camera {
     transition-duration: 0.01s !important;
+  }
+
+  #room.shaken .viewport {
+    animation: none;
   }
 }

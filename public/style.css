@@ -204,22 +204,16 @@ body {
 }
 
 /* The glow comes out of the gap, on the left, not from round the whole
-   frame: a soft upright bloom centred on the jamb. Each door's is its own:
-   how wide, how high up, how strong, which way it leans. */
+   frame: a soft bright band up the whole height of the jamb, the same on
+   every door. */
 .doorway::before {
   content: "";
   position: absolute;
-  left: calc(var(--halo-w, 120%) / -2);
-  width: var(--halo-w, 120%);
-  top: -18%;
-  height: 136%;
-  background: radial-gradient(
-    ellipse 50% 50% at 50% var(--halo-y, 50%),
-    rgb(255 255 255 / var(--halo-a, 0.32)),
-    rgb(255 255 255 / calc(var(--halo-a, 0.32) * 0.35)) 38%,
-    transparent 70%
-  );
-  rotate: var(--halo-tilt, 0deg);
+  left: -55%;
+  width: 110%;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12) 30%, rgb(255 255 255 / 0.36) 50%, rgb(255 255 255 / 0.12) 70%, transparent);
   filter: blur(10px);
   opacity: 0;
   pointer-events: none;
@@ -236,11 +230,7 @@ body {
    where its knot, seams and scratches fall, how high the latch sits, and a
    lean of well under a degree. */
 .stall:nth-child(1) {
-  /* the light that gets out when it's ajar */
-  --halo-w: 120%;
-  --halo-y: 47%;
-  --halo-a: 0.32;
-  --halo-tilt: -3deg;
+  /* how the light that gets out lies on the floor */
   --fan: 150deg;
   --reach: 90%;
   --spill-a: 1;
@@ -293,11 +283,7 @@ body {
 }
 
 .stall:nth-child(2) {
-  /* the light that gets out when it's ajar */
-  --halo-w: 92%;
-  --halo-y: 60%;
-  --halo-a: 0.42;
-  --halo-tilt: 4deg;
+  /* how the light that gets out lies on the floor */
   --fan: 137deg;
   --reach: 72%;
   --spill-a: 0.85;
@@ -350,11 +336,7 @@ body {
 }
 
 .stall:nth-child(3) {
-  /* the light that gets out when it's ajar */
-  --halo-w: 150%;
-  --halo-y: 40%;
-  --halo-a: 0.25;
-  --halo-tilt: 1deg;
+  /* how the light that gets out lies on the floor */
   --fan: 160deg;
   --reach: 100%;
   --spill-a: 1;
@@ -408,11 +390,7 @@ body {
 }
 
 .stall:nth-child(4) {
-  /* the light that gets out when it's ajar */
-  --halo-w: 106%;
-  --halo-y: 54%;
-  --halo-a: 0.37;
-  --halo-tilt: -6deg;
+  /* how the light that gets out lies on the floor */
   --fan: 144deg;
   --reach: 80%;
   --spill-a: 0.92;
@@ -709,9 +687,19 @@ body {
 }
 
 
-/* no transitions until the server first answers, so a load doesn't animate */
-.loading * {
+/* Until the server first answers, nobody knows which stalls are taken: the
+   latches show neither colour (`unknown`), and nothing animates
+   (`loading`), pseudo-elements included, since the colour lives on one and
+   `*` alone doesn't reach it. The two come off one after the other, so the
+   real colour lands before transitions are back on. */
+.loading *,
+.loading *::before,
+.loading *::after {
   transition: none !important;
+}
+
+.unknown .lock::before {
+  background: #2a2a2a;
 }
 
 @media (prefers-reduced-motion: reduce) {

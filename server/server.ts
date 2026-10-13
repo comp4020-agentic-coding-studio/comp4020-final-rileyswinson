@@ -22,6 +22,8 @@ const TYPES: Record<string, string> = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".ico": "image/x-icon",
+  ".mp3": "audio/mpeg",
+  ".md": "text/markdown; charset=utf-8",
 };
 
 async function readmePage(): Promise<string> {
@@ -66,6 +68,9 @@ const NOISES = new Set(["piss", "shit", "half", "full"]);
 const stalls = new Stalls(4, process.env.DATA_DIR ?? join(ROOT, "data"));
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => (stalls.save(), process.exit(0)));
 const lastNoise = new Map<string, number>();
+// and knuckles need a rest between knocks
+const KNOCK_GAP_MS = 700;
+const lastKnock = new Map<string, number>();
 
 const send = (ws: WebSocket, msg: unknown) => {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -175,6 +180,12 @@ wss.on("connection", (ws, req) => {
         send(ws, stallMsg(msg.door));
       }
       else send(ws, { type: "denied", door: msg.door });
+    } else if (msg.type === "knock" && typeof msg.door === "number") {
+      // knocking on a shut door: everyone hears it, wherever they are
+      const now = Date.now();
+      if (!doors.view()[msg.door]?.occupied || now - (lastKnock.get(id) ?? 0) < KNOCK_GAP_MS) return;
+      lastKnock.set(id, now);
+      for (const other of sockets.keys()) send(other, { type: "knock", door: msg.door });
     } else if (msg.type === "stroke") {
       // a line drawn on something in the stall: kept, and passed to any
       // other window open on the same stall

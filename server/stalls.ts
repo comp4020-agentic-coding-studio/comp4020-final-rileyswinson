@@ -36,8 +36,8 @@ export const INKS = new Set([
   "#f2c200", "#ff5fa2", "#ff7a1a", "#8a2be2", "#6b4a2b",
 ]);
 export const KINDS = new Set<Kind>(["pen", "marker", "spray"]);
-// the pen and the marker come fine or fat; the spray is only ever wide
-const NIBS: Record<Kind, number[]> = { pen: [0.5, 1.2], marker: [0.5, 1.2], spray: [15] };
+// each comes in two widths; the spray's are both far wider than the others'
+const NIBS: Record<Kind, number[]> = { pen: [0.5, 1.2], marker: [0.5, 1.2], spray: [5, 11.25] };
 
 const MAX_POINTS = 4000; // per stroke
 const MAX_MARKS_PER_FACE = 2000; // after that the oldest go under the newest

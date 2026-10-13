@@ -37,6 +37,21 @@ in it, for the next person too, until a flush takes it. Sliding the latch on
 the back of the door lets you out. The door lets itself open after five
 minutes.
 
+## Sound
+
+There are only a few sounds, on purpose. A door creaks when you hover it.
+Knocking on an occupied door is heard by everyone, and jolts the view of
+whoever's inside it a moment later. Every button and choice makes the same
+small click. The pen, the marker and the spray can each sound while a line is
+being drawn, and a sticker going on peels faintly. A clock ticks when you have
+thirty seconds left, and again through the last five.
+
+Those are all made in the browser from noise and a few oscillators. Pissing,
+shitting and flushing are recordings, all public domain; `public/audio/CREDITS.md`
+says where each came from. Everything goes through one bus that squashes it
+hard and narrows it to the middle of the band, like a cheap speaker in a tiled
+room. Browsers keep a page silent until you first click or press a key.
+
 ## Stickers
 
 Stickers are made at the sticker station, which is out in the corridor and

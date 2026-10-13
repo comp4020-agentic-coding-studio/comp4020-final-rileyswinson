@@ -46,8 +46,15 @@ function session(): Promise<{ ws: WebSocket; next: (pred: (m: Msg) => boolean) =
   // after a second, which is the spec's bound
   const next = (pred: (m: Msg) => boolean) =>
     new Promise<Msg>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("no matching update within 1s")), 1000);
+      // a wait that has given up must stop looking, or it takes the next
+      // matching message out of the inbox from under whoever waits for it later
+      let waiting = true;
+      const timeout = setTimeout(() => {
+        waiting = false;
+        reject(new Error("no matching update within 1s"));
+      }, 1000);
       const look = () => {
+        if (!waiting) return;
         const i = inbox.findIndex(pred);
         if (i === -1) return void waiters.push(look);
         clearTimeout(timeout);
@@ -195,7 +202,7 @@ it("a sticker goes from its maker, by way of the pile, onto walls and onto a doo
     await a.next((m) => m.type === "stall");
     const x = Math.round(Math.random() * 1000) / 10;
     const under = { k: "pen", c: "#111111", w: 1.2, p: [x, 60, x + 30, 60] };
-    const over = { k: "spray", c: "#1b6ef3", w: 15, p: [x, 61, x + 30, 61] };
+    const over = { k: "spray", c: "#1b6ef3", w: 11.25, p: [x, 61, x + 30, 61] };
     a.ws.send(JSON.stringify({ type: "stroke", face: "wall-right", stroke: under }));
     a.ws.send(JSON.stringify({ type: "stick", face: "wall-right", sticker: { id, u: x + 15, v: 60, r: 5 } }));
     const stuck = (await a.next((m) => m.type === "stuck")).sticker!;
@@ -257,6 +264,31 @@ it("a sticker goes from its maker, by way of the pile, onto walls and onto a doo
     const restocked = await a.next((m) => m.type === "stall" && m.door === door);
     expect(restocked.pile!.find((w) => w.id === "trash00001")).toEqual({ id: "trash00001", left: 10 });
     expect(restocked.pile!.find((w) => w.id === id)).toEqual({ id, left: 9 });
+    a.ws.send(JSON.stringify({ type: "leave" }));
+    await b.next((m) => m.type === "doors" && !m.doors![door].occupied);
+  } finally {
+    a.ws.close();
+    b.ws.close();
+  }
+});
+
+it("a knock on an occupied door is heard by everyone, and only an occupied door can be knocked on", async () => {
+  const a = await session();
+  const b = await session();
+  try {
+    const door = a.first.doors!.findIndex((d) => !d.occupied);
+    expect(door, "every stall is occupied, so there's nothing to test with").not.toBe(-1);
+
+    // nobody's in there yet, so there's nothing to knock on
+    b.ws.send(JSON.stringify({ type: "knock", door }));
+    await expect(a.next((m) => m.type === "knock")).rejects.toThrow();
+    a.ws.send(JSON.stringify({ type: "enter", door }));
+    await b.next((m) => m.type === "doors" && m.doors![door].occupied);
+
+    b.ws.send(JSON.stringify({ type: "knock", door }));
+    expect((await a.next((m) => m.type === "knock")).door).toBe(door); // the one inside
+    expect((await b.next((m) => m.type === "knock")).door).toBe(door); // and the one knocking
+
     a.ws.send(JSON.stringify({ type: "leave" }));
     await b.next((m) => m.type === "doors" && !m.doors![door].occupied);
   } finally {

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/room.css" />
   </head>
-  <body class="loading">
+  <body class="loading unknown">
     <main id="hallway" aria-label="A corridor of four toilet stalls">
       <h1 class="sr-only">Stalls</h1>
       <div class="scene">
@@ -23,7 +23,7 @@
       <p class="status" role="status" aria-live="polite"></p>
       <div class="corridor-buttons">
         <button class="station-open" type="button">sticker station</button>
-        <button class="stick-open" type="button">add a sticker</button>
+        <button class="stick-open" type="button">add a sticker to a door</button>
       </div>
     </main>
 
@@ -63,8 +63,8 @@
         </div>
         <div class="inks" role="radiogroup" aria-label="Colour"></div>
         <div class="nibs" role="radiogroup" aria-label="Width">
-          <button class="nib fine" type="button" data-w="0.5" aria-label="Fine" role="radio"></button>
-          <button class="nib fat" type="button" data-w="1.2" aria-label="Fat" role="radio"></button>
+          <button class="nib fine" type="button" aria-label="The narrower one" role="radio"></button>
+          <button class="nib fat" type="button" aria-label="The wider one" role="radio"></button>
         </div>
         <button class="add-sticker" type="button">add a sticker</button>
         <button class="done" type="button">done</button>

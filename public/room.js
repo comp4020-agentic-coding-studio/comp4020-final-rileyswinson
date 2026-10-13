@@ -5,7 +5,7 @@
 // bar the floor, you can draw on: hover it and the word "draw" appears, click and the
 // camera goes right up to that spot, and then you've a marker in your hand.
 
-import { piss, plop, flush } from "./sound.js";
+import * as sound from "./sound.js";
 import { stickers } from "./stickers.js";
 
 const K = 5; // px per centimetre; everything below is in centimetres
@@ -24,8 +24,8 @@ const LAMPS = ["72 96 255", "255 48 72", "52 214 120", "255 150 36"];
 
 // the markers: the same list the server accepts
 const INKS = ["#111111", "#e8e4d8", "#d7263d", "#1b6ef3", "#19a85a", "#f2c200", "#ff5fa2", "#ff7a1a", "#8a2be2", "#6b4a2b"];
-// what there is to draw with, and the widths each comes in (cm)
-const TOOLS = { pen: [0.5, 1.2], marker: [0.5, 1.2], spray: [15] };
+// what there is to draw with, and the two widths each comes in (cm), narrower first
+const TOOLS = { pen: [0.5, 1.2], marker: [0.5, 1.2], spray: [5, 11.25] };
 
 const el = document.getElementById("room");
 const viewport = el.querySelector(".viewport");
@@ -330,6 +330,7 @@ function turn(dir) {
     tilt = next;
   }
   move(0.7);
+  return true; // it moved
 }
 
 function sit() {
@@ -420,7 +421,7 @@ function seeded(seed) {
   };
 }
 
-const SPRAY_STEP = 0.8; // cm between puffs along the line
+const SPRAY_STEP = 0.4; // cm between puffs along the line
 const sprayStart = (s) => ({
   rand: seeded(Math.imul(Math.round(s.p[0] * 10) + 1, 73856093) ^ Math.imul(Math.round(s.p[1] * 10) + 1, 19349663) ^ parseInt(s.c.slice(1), 16)),
   from: 0, // the point the can has reached
@@ -435,11 +436,11 @@ function spray(g, s, st) {
   g.fillStyle = s.c;
   const puff = (x, y) => {
     // the wider the can, the more specks it takes to fill
-    for (let n = 0, count = Math.round(16 * s.w); n < count; n++) {
+    for (let n = 0, count = Math.round(8 * s.w); n < count; n++) {
       const a = st.rand() * Math.PI * 2;
       const r = half * Math.pow(st.rand(), 0.9); // thick in the middle, thin at the edge
       const size = (0.12 + st.rand() * 0.035 * s.w) * R; // a wider can throws bigger specks
-      g.globalAlpha = 0.3 + st.rand() * 0.5;
+      g.globalAlpha = 0.45 + st.rand() * 0.5;
       g.fillRect((x + Math.cos(a) * r) * R, (y + Math.sin(a) * r) * R, size, size);
     }
   };
@@ -545,7 +546,8 @@ for (const c of INKS) {
   palette.querySelector(".inks").append(b);
 }
 for (const b of palette.querySelectorAll(".tool")) b.addEventListener("click", () => pick({ k: b.dataset.k }));
-for (const nib of palette.querySelectorAll(".nib")) nib.addEventListener("click", () => pick({ w: Number(nib.dataset.w) }));
+const nibs = [...palette.querySelectorAll(".nib")]; // the narrower, then the wider, of whatever's in your hand
+nibs.forEach((nib, i) => nib.addEventListener("click", () => pick({ w: TOOLS[tool.k][i] })));
 palette.querySelector(".done").addEventListener("click", () => done());
 // a sticker instead of a line: choose which, then click where on this surface
 palette.querySelector(".add-sticker").addEventListener("click", async () => {
@@ -554,12 +556,13 @@ palette.querySelector(".add-sticker").addEventListener("click", async () => {
 });
 
 function pick(change) {
+  // narrower or wider carries over from one tool to the next
+  const size = Math.max(0, TOOLS[tool.k].indexOf(tool.w));
   Object.assign(tool, change);
-  if (!TOOLS[tool.k].includes(tool.w)) tool.w = TOOLS[tool.k][0];
+  if (!TOOLS[tool.k].includes(tool.w)) tool.w = TOOLS[tool.k][size];
   for (const b of palette.querySelectorAll(".tool")) b.setAttribute("aria-checked", String(b.dataset.k === tool.k));
   for (const b of palette.querySelectorAll(".swatch")) b.setAttribute("aria-checked", String(b.dataset.c === tool.c));
-  for (const b of palette.querySelectorAll(".nib")) b.setAttribute("aria-checked", String(Number(b.dataset.w) === tool.w));
-  palette.querySelector(".nibs").hidden = TOOLS[tool.k].length < 2; // the spray only comes one way
+  nibs.forEach((b, i) => b.setAttribute("aria-checked", String(TOOLS[tool.k][i] === tool.w)));
 }
 pick({});
 
@@ -583,6 +586,7 @@ function zoomInto(face, u, v) {
   zoom = { face, x: x / K, y: y / K, z: z / K, pitch, yaw: zy };
   el.classList.add("drawing");
   palette.hidden = false;
+  sound.click(); // a wall isn't a button, but stepping up to one is the same click
   move(0.9);
 }
 
@@ -610,6 +614,7 @@ function begin(e) {
   }
   const s = { k: tool.k, c: tool.c, w: tool.w, p: [tenth(at[0]), tenth(at[1])] };
   stroke = { face, s, can: s.k === "spray" ? sprayStart(s) : null };
+  sound.drawing.start(s.k);
   grow();
 }
 
@@ -621,8 +626,10 @@ function extend(e) {
   const u = tenth(clamp(at[0], 0, face.w / K));
   const v = tenth(clamp(at[1], 0, face.h / K));
   const n = s.p.length;
-  if (Math.hypot(u - s.p[n - 2], v - s.p[n - 1]) < 0.2) return; // the pen hasn't really moved
+  const moved = Math.hypot(u - s.p[n - 2], v - s.p[n - 1]);
+  if (moved < 0.2) return; // the pen hasn't really moved
   s.p.push(u, v);
+  sound.drawing.move(moved);
   grow();
 }
 
@@ -638,6 +645,7 @@ function grow() {
 
 function finish() {
   if (!stroke) return;
+  sound.drawing.stop();
   const { face, s, can } = stroke;
   stroke = null;
   face.marks.push(s);
@@ -766,6 +774,7 @@ function renderPicker() {
 function openPicker() {
   picker.hidden = false;
   verb.hidden = true;
+  sound.click(); // the pile isn't a button either
   renderPicker();
 }
 
@@ -839,10 +848,10 @@ function act(label, fn, always = false) {
 
 // each noise: how it sounds, and what it does here before the server answers
 const noises = {
-  piss: { sound: () => piss() },
-  shit: { sound: () => plop() },
-  half: { sound: () => flush({ full: false }), then: () => drain(false) },
-  full: { sound: () => flush({ full: true }), then: () => drain(true) },
+  piss: { sound: () => sound.piss() },
+  shit: { sound: () => sound.plop() },
+  half: { sound: () => sound.flush({ full: false }), then: () => drain(false) },
+  full: { sound: () => sound.flush({ full: true }), then: () => drain(true) },
 };
 
 let busyUntil;
@@ -956,6 +965,7 @@ viewport.addEventListener("click", (e) => {
     const at = landing(face, rayAt(e.clientX, e.clientY));
     if (!at || at[0] < 0 || at[1] < 0 || at[0] > face.w / K || at[1] > face.h / K) return;
     room.onStick?.(face.name, { id: stickers.placing, u: at[0], v: at[1], r: Math.round((Math.random() - 0.5) * 24) });
+    sound.peel();
     return stickers.place(null);
   }
   const t = target(e);
@@ -971,13 +981,14 @@ viewport.addEventListener("click", (e) => {
 addEventListener("keydown", (e) => {
   if (el.hidden) return;
   if (e.key === "Escape") {
+    if (!picker.hidden || zoom) sound.click(); // stepping back with a key sounds like the button would
     if (!picker.hidden) return closePicker();
     return done();
   }
   const dir = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" }[e.key];
   if (!dir) return;
   e.preventDefault();
-  turn(dir);
+  if (turn(dir)) sound.click(); // an arrow key sounds like the arrow on screen
 });
 
 addEventListener("resize", () => {
@@ -990,6 +1001,7 @@ addEventListener("resize", () => {
 // It can't quite hold its charge. Every so often it dips a few times, fast,
 // and the whole room dips with it, since every tint is scaled by --lamp.
 
+let lastSecond = null; // the last second of the countdown that was acted on
 let flickerTimer;
 const setLamp = (level) => el.style.setProperty("--lamp", level.toFixed(2));
 
@@ -1054,7 +1066,14 @@ export const room = {
 
   // the clock on the door, as words, and as the fraction of the visit left,
   // which is how far the dark has yet to close in
-  tick(text, left) {
+  tick(text, left, seconds) {
+    // the clock is heard twice: a few ticks at half a minute to go, and
+    // every second of the last five
+    if (seconds !== lastSecond) {
+      lastSecond = seconds;
+      if (seconds === 30) sound.clock(4);
+      else if (seconds >= 1 && seconds <= 5) sound.clock(1);
+    }
     timer.textContent = text;
     el.style.setProperty("--sight", Math.max(0.12, Math.min(1, left)).toFixed(3));
   },
@@ -1080,6 +1099,13 @@ export const room = {
   // sticker anyone (you included) has just stuck
   addStroke: put,
   addStuck: put,
+
+  // a knock on this stall's door, felt a moment after it's heard
+  shake() {
+    el.classList.remove("shaken");
+    void el.offsetWidth; // so a second knock shakes it again
+    el.classList.add("shaken");
+  },
 
   setBowl,
   turn,
