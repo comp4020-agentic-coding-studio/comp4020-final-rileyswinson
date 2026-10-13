@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# what the stalls hold, locally; on Fly it's the /data volume
+data/
 *.log
 
 # editor and OS junk

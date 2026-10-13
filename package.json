@@ -7,6 +7,7 @@
     "start": "node server/server.ts",
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm test",
+    "check:fresh": "node scripts/check-fresh.ts",
     "check:evidence": "node scripts/check-evidence.ts",
     "test": "vitest run"
   },

@@ -3,6 +3,8 @@
 
 import { creak, knock, piss, plop, flush } from "./sound.js";
 import { room } from "./room.js";
+import { stickers } from "./stickers.js";
+import { station } from "./station.js";
 
 const DOOR_COUNT = 4;
 
@@ -41,11 +43,21 @@ for (let i = 0; i < DOOR_COUNT; i++) {
   door.addEventListener("pointerleave", () => swingShut(i));
   door.addEventListener("focus", () => creakOpen(i));
   door.addEventListener("blur", () => swingShut(i));
-  door.addEventListener("click", () => tryEnter(i));
+  door.addEventListener("click", (e) => (stickers.placing ? stickOn(i, e) : tryEnter(i)));
   door.addEventListener("focus", () => lookAt(i));
   node.querySelector(".number").textContent = String(i + 1);
   hallway.querySelector(".doors").append(node);
-  stalls.push({ door, label: node.querySelector(".lock-label"), countdown: node.querySelector(".countdown") });
+  // stickers go on the door itself, so they swing with it
+  const stuck = document.createElement("span");
+  stuck.className = "stuck-layer";
+  node.querySelector(".panel").prepend(stuck);
+  stalls.push({
+    door,
+    label: node.querySelector(".lock-label"),
+    countdown: node.querySelector(".countdown"),
+    doorway: node.querySelector(".doorway"),
+    stuck,
+  });
 }
 
 function vacant(i) {
@@ -53,7 +65,8 @@ function vacant(i) {
 }
 
 function creakOpen(i) {
-  if (!vacant(i) || stalls[i].door.classList.contains("open")) return;
+  // with a sticker ready to go on, the door stays put so there's something to stick it to
+  if (!vacant(i) || stalls[i].door.classList.contains("open") || stickers.placing) return;
   stalls[i].door.classList.add("open");
   creak();
 }
@@ -69,7 +82,32 @@ function tryEnter(i) {
   }
   // a tap on a touch screen has no hover, so the door creaks open on the way in
   creakOpen(i);
-  socket?.send(JSON.stringify({ type: "enter", door: i }));
+  send({ type: "enter", door: i });
+}
+
+// the sticker you chose, on the outside of a door, where you clicked
+function stickOn(i, e) {
+  const r = stalls[i].doorway.getBoundingClientRect();
+  const u = (e.clientX - r.left) / r.width;
+  const v = (e.clientY - r.top) / r.height;
+  if (u < 0 || u > 1 || v < 0 || v > 1) return;
+  send({ type: "stick:outside", door: i, sticker: { id: stickers.placing, u, v, r: Math.round((Math.random() - 0.5) * 24) } });
+  stickers.place(null);
+}
+
+// everything stuck on the outside of every door
+function renderOutside(outside) {
+  outside.forEach((list, i) => {
+    stalls[i]?.stuck.replaceChildren(
+      ...list.map((o) => {
+        const img = stickers.img(o.id, "sticker");
+        img.style.left = `${o.u * 100}%`;
+        img.style.top = `${o.v * 100}%`;
+        img.style.rotate = `${o.r}deg`;
+        return img;
+      }),
+    );
+  });
 }
 
 function restart(door, cls) {
@@ -97,9 +135,12 @@ function render() {
   });
 
   const inside = state.you !== null;
+  if (hallway.hidden !== inside) stickers.place(null); // a new place; choose again
   hallway.hidden = inside;
-  if (inside) room.enter();
-  else room.exit();
+  if (inside) {
+    station.close(); // stickers are made out here, not in there
+    room.enter(state.you);
+  } else room.exit();
   tick();
   // the first real state lands with transitions off; flush it before they
   // come back, or every door animates from the "occupied" placeholder
@@ -126,8 +167,23 @@ function tick() {
 }
 setInterval(tick, 1000);
 
-room.onLeave = () => socket?.send(JSON.stringify({ type: "leave" }));
-room.onNoise = (kind) => socket?.send(JSON.stringify({ type: "noise", kind }));
+// a socket that is still connecting (or reconnecting) throws on send
+function send(msg) {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg));
+}
+
+room.onLeave = () => send({ type: "leave" });
+room.onNoise = (kind) => send({ type: "noise", kind });
+room.onStroke = (face, stroke) => send({ type: "stroke", face, stroke });
+room.onPile = (kind, id) => send({ type: `pile:${kind}`, id });
+room.onStick = (face, sticker) => send({ type: "stick", face, sticker });
+station.onFinish = (png) => send({ type: "sticker:make", png });
+hallway.querySelector(".station-open").addEventListener("click", () => station.open());
+// out here, a sticker goes on a door: choose one, then click the door
+hallway.querySelector(".stick-open").addEventListener("click", async () => {
+  const id = await stickers.choose();
+  if (id) stickers.place(id);
+});
 
 // --- camera ------------------------------------------------------------------
 // The corridor is wider than the screen on purpose. The mouse pans it, a
@@ -213,6 +269,7 @@ function connect(retry = 500) {
       state = msg;
       clockOffset = msg.now - Date.now();
       if (!wasInside && state.you !== null) enteredAt = msg.now;
+      if (msg.bowl) room.setBowl(msg.bowl);
       render();
       if (wasInside && state.you === null) status.textContent = "";
     } else if (msg.type === "denied") {
@@ -221,6 +278,27 @@ function connect(retry = 500) {
       status.textContent = "Someone got there first.";
     } else if (msg.type === "timeup") {
       status.textContent = "Time's up. The door swung open.";
+    } else if (msg.type === "stall") {
+      stickers.learn(msg.stickers);
+      room.setStall(msg);
+    } else if (msg.type === "pile") {
+      stickers.learn(msg.stickers);
+      room.setPile(msg.pile);
+    } else if (msg.type === "stuck") {
+      stickers.learn(msg.stickers);
+      room.addStuck(msg.face, msg.sticker);
+    } else if (msg.type === "outside") {
+      stickers.learn(msg.stickers);
+      renderOutside(msg.outside);
+    } else if (msg.type === "pocket") {
+      stickers.learn(msg.stickers);
+      stickers.setPocket(msg.pocket);
+    } else if (msg.type === "sticker:made") {
+      station.made(msg.id, msg.png);
+    } else if (msg.type === "sticker:refused") {
+      station.refused();
+    } else if (msg.type === "stroke") {
+      room.addStroke(msg.face, msg.stroke);
     } else if (msg.type === "noise") {
       // heard through the door: low, and the door shivers a little
       if (msg.kind === "piss") piss({ muffled: true });

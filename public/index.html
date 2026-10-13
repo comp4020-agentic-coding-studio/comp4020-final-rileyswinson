@@ -21,6 +21,10 @@
       </div>
       <div class="vignette" aria-hidden="true"></div>
       <p class="status" role="status" aria-live="polite"></p>
+      <div class="corridor-buttons">
+        <button class="station-open" type="button">sticker station</button>
+        <button class="stick-open" type="button">add a sticker</button>
+      </div>
     </main>
 
     <section id="room" hidden aria-label="Inside the stall">
@@ -51,7 +55,90 @@
         <p class="room-timer" aria-live="off"></p>
         <div class="actions"></div>
       </div>
+      <div class="palette" hidden>
+        <div class="tools" role="radiogroup" aria-label="What to draw with">
+          <button class="tool" type="button" data-k="pen" role="radio">paint pen</button>
+          <button class="tool" type="button" data-k="marker" role="radio">marker</button>
+          <button class="tool" type="button" data-k="spray" role="radio">mini spray</button>
+        </div>
+        <div class="inks" role="radiogroup" aria-label="Colour"></div>
+        <div class="nibs" role="radiogroup" aria-label="Width">
+          <button class="nib fine" type="button" data-w="0.5" aria-label="Fine" role="radio"></button>
+          <button class="nib fat" type="button" data-w="1.2" aria-label="Fat" role="radio"></button>
+        </div>
+        <button class="add-sticker" type="button">add a sticker</button>
+        <button class="done" type="button">done</button>
+      </div>
+      <div class="picker" hidden role="dialog" aria-label="The pile of stickers under the toilet">
+        <div class="picker-inner">
+          <h2>the pile</h2>
+          <p class="picker-note"></p>
+          <div class="picker-pile tiles"></div>
+          <h2>yours</h2>
+          <p class="picker-mine-note"></p>
+          <div class="picker-mine tiles"></div>
+          <button class="picker-close" type="button">close</button>
+        </div>
+      </div>
+      <span class="verb" hidden aria-hidden="true"></span>
       <div class="fade" aria-hidden="true"></div>
+    </section>
+
+    <!-- the sticker you've chosen, under the pointer until it's put somewhere -->
+    <img id="ghost" alt="" hidden />
+
+    <!-- which sticker: yours, or one you've picked up -->
+    <div id="chooser" hidden role="dialog" aria-label="Choose a sticker">
+      <div class="chooser-inner">
+        <h2>yours</h2>
+        <p class="chooser-mine-note"></p>
+        <div class="chooser-mine tiles"></div>
+        <h2>picked up</h2>
+        <p class="chooser-pocket-note"></p>
+        <div class="chooser-pocket tiles"></div>
+        <button class="chooser-close" type="button">close</button>
+      </div>
+    </div>
+
+    <!-- the sticker station: where stickers are made, out in the corridor only -->
+    <section id="station" hidden role="dialog" aria-label="Sticker station" data-stage="outline">
+      <div class="station-inner">
+        <h2>sticker station</h2>
+        <ol class="station-steps">
+          <li data-step="outline">Create your outline</li>
+          <li data-step="decorate">Select the outline color</li>
+          <li data-step="decorate">Select the interior color</li>
+          <li data-step="decorate">Draw your sticker</li>
+          <li data-step="done">Use them, or leave them for others!</li>
+        </ol>
+        <canvas aria-label="The sticker you're making"></canvas>
+        <p class="station-status" role="status"></p>
+        <div class="station-row">
+          <span class="station-label">outline</span>
+          <div class="station-edge inks" role="radiogroup" aria-label="The outline's colour"></div>
+        </div>
+        <div class="station-row">
+          <span class="station-label">interior</span>
+          <div class="station-base inks" role="radiogroup" aria-label="The interior's colour"></div>
+        </div>
+        <div class="station-row">
+          <span class="station-label">pen</span>
+          <div class="station-ink inks" role="radiogroup" aria-label="The pen's colour"></div>
+        </div>
+        <div class="station-row">
+          <span class="station-label">pen size</span>
+          <div class="station-sizes" role="radiogroup" aria-label="The pen's size">
+            <button class="station-size" type="button" data-w="2.5" role="radio"><i style="--dot: 0.3rem"></i>thin</button>
+            <button class="station-size" type="button" data-w="5" role="radio"><i style="--dot: 0.6rem"></i>medium</button>
+            <button class="station-size" type="button" data-w="10" role="radio"><i style="--dot: 1.05rem"></i>thick</button>
+          </div>
+        </div>
+        <div class="station-buttons">
+          <button class="station-again" type="button">start again</button>
+          <button class="station-finish" type="button" disabled>finish</button>
+          <button class="station-close" type="button">close</button>
+        </div>
+      </div>
     </section>
 
     <template id="door-template">

@@ -13,4 +13,5 @@ COPY server/ server/
 COPY public/ public/
 COPY README.md ./
 ENV NODE_ENV=production
+ENV DATA_DIR=/data
 CMD ["node", "server/server.ts"]

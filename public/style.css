@@ -199,12 +199,35 @@ body {
   position: absolute;
   inset: 0;
   background: var(--light);
-  box-shadow:
-    0 0 1.5rem 0.25rem rgb(255 255 255 / 0.45),
-    -2rem 0 5rem 0.5rem rgb(255 255 255 / 0.22),
-    -6rem 1rem 12rem 2rem rgb(255 255 255 / 0.1);
   opacity: 0;
   transition: opacity 0.9s ease;
+}
+
+/* The glow comes out of the gap, on the left, not from round the whole
+   frame: a soft upright bloom centred on the jamb. Each door's is its own:
+   how wide, how high up, how strong, which way it leans. */
+.doorway::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--halo-w, 120%) / -2);
+  width: var(--halo-w, 120%);
+  top: -18%;
+  height: 136%;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% var(--halo-y, 50%),
+    rgb(255 255 255 / var(--halo-a, 0.32)),
+    rgb(255 255 255 / calc(var(--halo-a, 0.32) * 0.35)) 38%,
+    transparent 70%
+  );
+  rotate: var(--halo-tilt, 0deg);
+  filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.9s ease;
+}
+
+.door.open .doorway::before {
+  opacity: 1;
 }
 
 /* the door itself, hinged on the right so it swings in and the gap opens on
@@ -213,6 +236,14 @@ body {
    where its knot, seams and scratches fall, how high the latch sits, and a
    lean of well under a degree. */
 .stall:nth-child(1) {
+  /* the light that gets out when it's ajar */
+  --halo-w: 120%;
+  --halo-y: 47%;
+  --halo-a: 0.32;
+  --halo-tilt: -3deg;
+  --fan: 150deg;
+  --reach: 90%;
+  --spill-a: 1;
   --knot-a: 0;
   --ring-a: 0;
   --marks:
@@ -262,6 +293,14 @@ body {
 }
 
 .stall:nth-child(2) {
+  /* the light that gets out when it's ajar */
+  --halo-w: 92%;
+  --halo-y: 60%;
+  --halo-a: 0.42;
+  --halo-tilt: 4deg;
+  --fan: 137deg;
+  --reach: 72%;
+  --spill-a: 0.85;
   --knot-a: 0;
   --ring-a: 0;
   --marks:
@@ -311,6 +350,14 @@ body {
 }
 
 .stall:nth-child(3) {
+  /* the light that gets out when it's ajar */
+  --halo-w: 150%;
+  --halo-y: 40%;
+  --halo-a: 0.25;
+  --halo-tilt: 1deg;
+  --fan: 160deg;
+  --reach: 100%;
+  --spill-a: 1;
   --knot-a: 0.14;
   --ring-a: 0.024;
   --marks:
@@ -361,6 +408,14 @@ body {
 }
 
 .stall:nth-child(4) {
+  /* the light that gets out when it's ajar */
+  --halo-w: 106%;
+  --halo-y: 54%;
+  --halo-a: 0.37;
+  --halo-tilt: -6deg;
+  --fan: 144deg;
+  --reach: 80%;
+  --spill-a: 0.92;
   --knot-a: 0;
   --ring-a: 0;
   --marks:
@@ -509,14 +564,14 @@ body {
   /* a soft fan from the gap (at 68% across), spreading left and forward,
      brightest near the door and gone before it reaches the edge */
   background:
-    conic-gradient(from 150deg at 72% 0%, transparent 0deg, rgb(255 255 255 / 0.5) 22deg, rgb(255 255 255 / 0.55) 55deg, transparent 95deg),
+    conic-gradient(from var(--fan, 150deg) at 72% 0%, transparent 0deg, rgb(255 255 255 / 0.5) 22deg, rgb(255 255 255 / 0.55) 55deg, transparent 95deg),
     radial-gradient(60% 50% at 70% 0%, rgb(255 255 255 / 0.5), transparent 70%);
-  mask-image: linear-gradient(to bottom, #000, rgb(0 0 0 / 0.5) 45%, transparent 90%);
+  mask-image: linear-gradient(to bottom, #000, rgb(0 0 0 / 0.5) 45%, transparent var(--reach, 90%));
   filter: blur(14px);
 }
 
 .door.open .spill {
-  opacity: 1;
+  opacity: var(--spill-a, 1);
 }
 
 /* the latch: a small steel plate screwed to the door at handle height, on
@@ -676,4 +731,313 @@ body {
   .door.rattle .doorway {
     animation: none;
   }
+}
+
+/* --- stickers ------------------------------------------------------------- */
+
+/* a sticker stuck on something: placed by its middle, a little askew */
+.sticker {
+  position: absolute;
+  translate: -50% -50%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.stuck-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* on the outside of a door, sized against the door */
+.panel .sticker {
+  width: 26%;
+}
+
+/* the two things you can do about stickers out here */
+.corridor-buttons {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.corridor-buttons button {
+  padding: 0.45rem 0.9rem;
+  background: rgb(0 0 0 / 0.5);
+  border: 1px solid rgb(216 216 216 / 0.3);
+  border-radius: 2px;
+  color: var(--line);
+  font: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.corridor-buttons button:hover,
+.corridor-buttons button:focus-visible {
+  border-color: var(--line);
+}
+
+/* with a sticker ready to go on, a door is somewhere to put it */
+body.sticking #hallway,
+body.sticking .door,
+body.sticking .door[aria-disabled="true"] {
+  cursor: copy;
+}
+
+#ghost[hidden],
+#chooser[hidden],
+#station[hidden] {
+  display: none;
+}
+
+/* the sticker you've chosen, under the pointer until it's put somewhere */
+#ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  width: 3.5rem;
+  margin: -1.75rem 0 0 -1.75rem;
+  opacity: 0.75;
+  rotate: -6deg;
+  pointer-events: none;
+}
+
+/* choosing one, and making one: both are a panel over whatever's behind */
+#chooser,
+#station {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex; /* with the panel's auto margins: centred, and still all reachable when it's taller than the window */
+  padding: 1rem;
+  overflow: auto;
+  background: rgb(0 0 0 / 0.8);
+  color: #e6e6dc;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+}
+
+#chooser {
+  z-index: 25;
+}
+
+.chooser-inner,
+.station-inner {
+  width: min(26rem, 100%);
+  margin: auto;
+  display: grid;
+  gap: 0.7rem;
+  justify-items: center;
+  padding: 1.2rem;
+  background: #0b0b0b;
+  border: 1px solid rgb(230 230 220 / 0.2);
+}
+
+.chooser-inner h2,
+.station-inner h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: normal;
+  letter-spacing: 0.25em;
+}
+
+.chooser-inner p {
+  margin: 0;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.chooser-inner p:empty {
+  display: none;
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tile {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem;
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(230 230 220 / 0.2);
+  border-radius: 2px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.tile:hover,
+.tile:focus-visible {
+  border-color: #e6e6dc;
+}
+
+.tile-art {
+  width: 3.4rem;
+  height: 3.4rem;
+  object-fit: contain;
+}
+
+.chooser-close,
+.station-buttons button {
+  padding: 0.45rem 0.9rem;
+  background: none;
+  border: 1px solid rgb(230 230 220 / 0.35);
+  border-radius: 2px;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.chooser-close:hover,
+.station-buttons button:hover:not(:disabled),
+.station-buttons button:focus-visible {
+  border-color: #e6e6dc;
+  background: rgb(255 255 255 / 0.07);
+}
+
+.station-buttons button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* the steps, in order; the ones you're on now stand out */
+.station-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  justify-self: stretch;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.station-steps li {
+  counter-increment: step;
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+
+.station-steps li::before {
+  content: counter(step) ") ";
+}
+
+#station[data-stage="outline"] li[data-step="outline"],
+#station[data-stage="decorate"] li[data-step="decorate"],
+#station[data-stage="done"] li[data-step="done"] {
+  opacity: 1;
+}
+
+/* On a wide window the picture sits beside its controls, so the whole
+   station fits without scrolling; on a narrow one they stack. */
+@media (min-width: 46rem) {
+  .station-inner {
+    width: min(46rem, 100%);
+    grid-template-columns: auto 1fr;
+    column-gap: 1.4rem;
+    align-items: center;
+  }
+
+  .station-inner h2,
+  .station-steps {
+    grid-column: 1 / -1;
+  }
+
+  .station-inner canvas {
+    grid-column: 1;
+    grid-row: 3 / span 6;
+  }
+
+  .station-inner > :not(h2, .station-steps, canvas) {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .station-steps {
+    justify-self: center;
+  }
+}
+
+/* plain light grey to work on */
+#station canvas {
+  width: min(18rem, 78vw, 46vh);
+  aspect-ratio: 1;
+  background: #c9c9c7;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.station-status {
+  margin: 0;
+  min-height: 1.2em;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.station-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.station-label {
+  width: 4.2rem;
+  text-align: right;
+  opacity: 0.6;
+}
+
+/* nothing to colour or draw on until there's an outline */
+#station[data-stage="outline"] .station-row {
+  opacity: 0.35;
+}
+
+/* the pen's size: three buttons that say what they are */
+.station-sizes {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.station-size {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.7rem;
+  background: none;
+  border: 1px solid rgb(230 230 220 / 0.35);
+  border-radius: 999px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.station-size i {
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.station-size[aria-checked="true"] {
+  background: #e6e6dc;
+  border-color: #e6e6dc;
+  color: #000;
+}
+
+.station-buttons {
+  display: flex;
+  gap: 0.5rem;
 }

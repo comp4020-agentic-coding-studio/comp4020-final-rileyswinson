@@ -1,7 +1,30 @@
-/* Inside a stall. The room is a box of six planes and a few rigid boxes,
-   flat-shaded: every face of a box is one colour, lit from overhead. */
+/* Inside a stall. The room is a box of six planes and a few rigid shapes,
+   flat-shaded: every face is one colour, lit by one coloured lamp overhead.
+   Two numbers drive the picture. --lamp is how bright the lamp is right now;
+   every tint in here is multiplied by it, so when the lamp dips the walls
+   dip with it. --sight is how much of the view the dark has left you: it
+   starts wide and closes in as your time in the stall runs out. */
+
+@property --lamp {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --sight {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
 
 #room {
+  /* the lamp's colour; room.js sets it to the stall's own on the way in */
+  --lamp-rgb: 72 96 255;
+  --lamp: 1;
+  --sight: 1;
+  /* the lamp's colour, barely, over every surface; the rest of it stays up
+     near the roof */
+  --wash: linear-gradient(rgb(var(--lamp-rgb) / calc(0.02 * var(--lamp))), rgb(var(--lamp-rgb) / calc(0.02 * var(--lamp))));
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -50,136 +73,210 @@
   top: 0;
   transform-origin: 0 0 0;
   backface-visibility: hidden;
+}
+
+/* a face paints itself, unless it's clipped to a shape, in which case a
+   flat child does the painting (see plane() in room.js) */
+.face:not(.clipped),
+.skin {
   background-color: var(--mat, #888);
   background-image: linear-gradient(var(--tint, transparent), var(--tint, transparent));
 }
 
-/* one light, overhead: tops bright, sides dim, undersides dark */
-.f-top { --tint: rgb(255 255 240 / 0.16); }
-.f-front { --tint: transparent; }
-.f-back { --tint: rgb(0 0 0 / 0.12); }
-.f-left { --tint: rgb(0 0 0 / 0.28); }
-.f-right { --tint: rgb(0 0 0 / 0.2); }
-.f-bottom { --tint: rgb(0 0 0 / 0.55); }
+.skin {
+  position: absolute;
+  inset: 0;
+}
+
+/* one lamp, overhead: tops take its colour, sides go dim, undersides dark */
+.f-top { --tint: rgb(var(--lamp-rgb) / calc(0.2 * var(--lamp))); }
+.f-front { --tint: rgb(0 0 0 / 0.1); }
+.f-back { --tint: rgb(0 0 0 / 0.2); }
+.f-left { --tint: rgb(0 0 0 / 0.36); }
+.f-right { --tint: rgb(0 0 0 / 0.28); }
+.f-bottom { --tint: rgb(0 0 0 / 0.6); }
+/* .f-side: room.js sets --tint from which way the side faces */
 
 /* --- materials -------------------------------------------------------------- */
 
 .ceramic {
-  --mat: #d9d6ca;
+  --mat: #b9b6ab;
 }
 
 .seat {
-  --mat: #cfccc1;
+  --mat: #c2bfb4;
 }
 
-.seat .f-top {
-  --tint: rgb(255 255 240 / 0.14);
+/* the inside of the bowl: glazed, and in its own shadow */
+.bowl {
+  --mat: #6f6d66;
+}
+
+.bowl .f-top {
+  --tint: rgb(0 0 0 / 0.5);
+}
+
+/* the water: its colour is whatever's in it, with the lamp caught on top */
+.water .skin {
+  background-color: var(--water, #0e1222);
   background-image:
-    radial-gradient(ellipse 27% 31% at 50% 54%, #060606 0 97%, transparent 100%),
-    linear-gradient(var(--tint), var(--tint));
+    radial-gradient(ellipse 14% 9% at 50% 40%, rgb(255 255 255 / calc(0.55 * var(--lamp))), transparent),
+    radial-gradient(ellipse 60% 60% at 50% 45%, rgb(var(--lamp-rgb) / calc(0.16 * var(--lamp))), transparent);
+  transition: background-color 2.5s ease;
 }
 
+.poop {
+  --mat: #3a2616;
+}
+
+/* the flush plate, and its two buttons: a small one and a big one */
 .plate {
-  --mat: #8d908d;
+  --mat: #6f726f;
 }
 
-.plate .f-front {
-  background-image:
-    linear-gradient(#b8bbb7, #b8bbb7) 27% 50% / 30% 46% no-repeat,
-    linear-gradient(#b8bbb7, #b8bbb7) 73% 50% / 30% 46% no-repeat;
+.plate .flush {
+  position: absolute;
+  top: 18%;
+  height: 64%;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: #a3a6a2;
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.25),
+    inset 0 -3px 0 rgb(0 0 0 / 0.35),
+    0 2px 3px rgb(0 0 0 / 0.5);
+  cursor: pointer;
+}
+
+.plate .flush.half {
+  left: 8%;
+  width: 28%;
+}
+
+.plate .flush.full {
+  left: 42%;
+  width: 50%;
+}
+
+.plate .flush:hover,
+.plate .flush:focus-visible {
+  background: #c4c7c3;
+  outline: none;
+}
+
+.plate .flush:active {
+  translate: 0 2px;
+  box-shadow: inset 0 2px 0 rgb(0 0 0 / 0.3);
 }
 
 .chrome {
-  --mat: #9a9d9a;
+  --mat: #85887f;
 }
 
 .roll {
-  --mat: #e6e4dc;
+  --mat: #cfcdc4;
 }
 
-/* the end of the roll: a tube, and the paper wound round it */
-.roll .f-left {
+/* the ends of the roll: a card tube, and the paper wound round it */
+.f-cap {
+  --tint: rgb(0 0 0 / 0.14);
+}
+
+.roll .f-cap .skin {
   background-image:
-    radial-gradient(circle, #4a463f 0 17%, transparent 18%),
-    repeating-radial-gradient(circle, transparent 0 3px, rgb(0 0 0 / 0.1) 3px 4px),
+    radial-gradient(circle, #1c1a17 0 14%, #6b5a42 15% 21%, transparent 22%),
+    repeating-radial-gradient(circle, transparent 0 2px, rgb(0 0 0 / 0.12) 2px 3px),
     linear-gradient(var(--tint), var(--tint));
 }
 
+/* the waste pipe */
+.pipe {
+  --mat: #6c6f6a;
+}
+
 .plastic {
-  --mat: #2b2b2b;
+  --mat: #222;
 }
 
-.lamp {
-  --mat: #f6f6ec;
-}
-
+/* the lamp itself: its colour, with a pale core, and a pool of it below */
 .lamp .face {
   --tint: transparent;
+  background:
+    linear-gradient(rgb(255 255 255 / calc(0.5 * var(--lamp))), rgb(255 255 255 / calc(0.5 * var(--lamp)))),
+    linear-gradient(rgb(var(--lamp-rgb) / var(--lamp)), rgb(var(--lamp-rgb) / var(--lamp))),
+    #000;
 }
 
 .lamp .f-bottom {
-  box-shadow: 0 0 140px 50px rgb(255 255 235 / 0.2);
+  box-shadow: 0 0 120px 40px rgb(var(--lamp-rgb) / calc(0.45 * var(--lamp)));
 }
 
-/* --- the surfaces ---------------------------------------------------------------- */
+/* --- the surfaces ------------------------------------------------------------- */
+/* Neutral grey, and dark. What colour there is comes from the lamp: strong
+   along the top of each wall, gone by half way down, a trace on the floor. */
 
-.surface {
-  background-image: none;
-}
-
-/* tiles behind the toilet, 15 cm, with the light falling from above */
+/* tiles behind the toilet, 15 cm */
 .surface.back {
   background:
-    radial-gradient(70% 45% at 50% 0%, rgb(255 255 240 / 0.12), transparent),
-    repeating-linear-gradient(90deg, #1c1f1b 0 2px, transparent 2px 75px),
-    repeating-linear-gradient(0deg, #1c1f1b 0 2px, transparent 2px 75px),
-    #30342e;
+    linear-gradient(to bottom, rgb(var(--lamp-rgb) / calc(0.3 * var(--lamp))), rgb(var(--lamp-rgb) / calc(0.07 * var(--lamp))) 22%, transparent 45%),
+    var(--wash),
+    repeating-linear-gradient(90deg, #141414 0 2px, transparent 2px 75px),
+    repeating-linear-gradient(0deg, #141414 0 2px, transparent 2px 75px),
+    #222;
 }
 
 /* the partitions: painted board, one a shade lighter than the other */
 .surface.left {
   background:
-    radial-gradient(60% 50% at 60% 0%, rgb(255 255 240 / 0.08), transparent),
-    linear-gradient(90deg, #212420, #272a25 50%, #222521);
+    linear-gradient(to bottom, rgb(var(--lamp-rgb) / calc(0.26 * var(--lamp))), rgb(var(--lamp-rgb) / calc(0.06 * var(--lamp))) 22%, transparent 45%),
+    var(--wash),
+    #1e1e1e;
 }
 
 .surface.right {
   background:
-    radial-gradient(60% 50% at 40% 0%, rgb(255 255 240 / 0.08), transparent),
-    linear-gradient(90deg, #262925, #2b2e29 50%, #262925);
+    linear-gradient(to bottom, rgb(var(--lamp-rgb) / calc(0.26 * var(--lamp))), rgb(var(--lamp-rgb) / calc(0.06 * var(--lamp))) 22%, transparent 45%),
+    var(--wash),
+    #212121;
 }
 
 /* 30 cm floor tiles */
 .surface.ground {
   background:
-    radial-gradient(45% 45% at 50% 40%, rgb(255 255 240 / 0.07), transparent),
-    repeating-linear-gradient(90deg, #0c0c0c 0 3px, transparent 3px 150px),
-    repeating-linear-gradient(0deg, #0c0c0c 0 3px, transparent 3px 150px),
-    #171717;
+    radial-gradient(45% 45% at 50% 45%, rgb(var(--lamp-rgb) / calc(0.07 * var(--lamp))), transparent 80%),
+    var(--wash),
+    repeating-linear-gradient(90deg, #080808 0 3px, transparent 3px 150px),
+    repeating-linear-gradient(0deg, #080808 0 3px, transparent 3px 150px),
+    #101010;
 }
 
 .surface.ceiling {
-  background: #111;
+  background:
+    radial-gradient(45% 45% at 50% 50%, rgb(var(--lamp-rgb) / calc(0.55 * var(--lamp))), rgb(var(--lamp-rgb) / calc(0.1 * var(--lamp))) 40%, transparent 75%),
+    #0a0a0a;
 }
 
 /* the back of the door: the same planks as outside, seen from in here */
 .surface.exit {
   background:
-    radial-gradient(60% 40% at 50% 0%, rgb(255 240 210 / 0.06), transparent),
-    linear-gradient(90deg, transparent 23%, rgb(255 230 200 / 0.14) 23%, #000 calc(23% + 2px), transparent calc(23% + 6px)),
-    linear-gradient(90deg, transparent 46%, rgb(255 230 200 / 0.1) 46%, #000 calc(46% + 2px), transparent calc(46% + 6px)),
-    linear-gradient(90deg, transparent 64%, rgb(255 230 200 / 0.15) 64%, #000 calc(64% + 2px), transparent calc(64% + 6px)),
-    linear-gradient(90deg, transparent 83%, rgb(255 230 200 / 0.09) 83%, #000 calc(83% + 2px), transparent calc(83% + 6px)),
-    repeating-linear-gradient(90deg, rgb(255 220 170 / 0.03) 0 2px, transparent 2px 13px),
-    repeating-linear-gradient(89.5deg, rgb(255 220 170 / 0.02) 0 2px, transparent 2px 23px),
-    linear-gradient(90deg, #16120e 23%, #120e0a 23% 46%, #19140f 46% 64%, #14100c 64% 83%, #17130e 83%);
+    linear-gradient(to bottom, rgb(var(--lamp-rgb) / calc(0.24 * var(--lamp))), rgb(var(--lamp-rgb) / calc(0.05 * var(--lamp))) 22%, transparent 45%),
+    var(--wash),
+    linear-gradient(90deg, transparent 23%, rgb(255 230 200 / 0.12) 23%, #000 calc(23% + 2px), transparent calc(23% + 6px)),
+    linear-gradient(90deg, transparent 46%, rgb(255 230 200 / 0.08) 46%, #000 calc(46% + 2px), transparent calc(46% + 6px)),
+    linear-gradient(90deg, transparent 64%, rgb(255 230 200 / 0.13) 64%, #000 calc(64% + 2px), transparent calc(64% + 6px)),
+    linear-gradient(90deg, transparent 83%, rgb(255 230 200 / 0.07) 83%, #000 calc(83% + 2px), transparent calc(83% + 6px)),
+    repeating-linear-gradient(90deg, rgb(255 220 170 / 0.025) 0 2px, transparent 2px 13px),
+    repeating-linear-gradient(89.5deg, rgb(255 220 170 / 0.018) 0 2px, transparent 2px 23px),
+    linear-gradient(90deg, #110e0b 23%, #0d0a08 23% 46%, #13100c 46% 64%, #0f0c09 64% 83%, #120f0b 83%);
 }
 
 /* the latch from inside: the hinge is on the left in here, so it sits on the
-   right, and it reads occupied because you locked it. Clicking it is leaving. */
+   right, and it reads occupied because you locked it. Slide it across and
+   you're out. */
 .surface.exit .lock {
   --screw: 14px;
-  top: 54%;
+  top: 47%;
   left: auto;
   right: 12%;
   width: 36%;
@@ -200,15 +297,312 @@
   right: 50%;
 }
 
-.surface.exit .lock:hover .knob,
-.surface.exit .lock:focus-visible .knob {
-  left: 30%;
-  right: 30%;
-}
-
 .surface.exit .lock-label {
   translate: 100% 0;
   font-size: 0.75rem;
+}
+
+/* it gives a little when you reach for it */
+.surface.exit .lock:hover .knob,
+.surface.exit .lock:focus-visible .knob {
+  left: calc(var(--screw) + 8%);
+  right: 42%;
+}
+
+/* slid across: vacant, and the door is about to let you out */
+.surface.exit .lock.open::before {
+  background: var(--vacant);
+}
+
+.surface.exit .lock.open .knob {
+  left: 50%;
+  right: var(--screw);
+}
+
+.surface.exit .lock.open .lock-label {
+  translate: 0 0;
+}
+
+/* with a marker in your hand, the latch and the flush buttons are only
+   more surface */
+#room.drawing .lock,
+#room.drawing .flush {
+  pointer-events: none;
+}
+
+/* --- drawing ----------------------------------------------------------------------- */
+
+/* every drawable face carries its own canvas, made when first drawn on */
+.ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#room.drawing .viewport {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* the markers, laid out along the bottom while you're up close */
+.palette {
+  position: absolute;
+  left: 50%;
+  bottom: 1.1rem;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.55rem 0.8rem;
+  background: rgb(0 0 0 / 0.55);
+  border: 1px solid rgb(230 230 220 / 0.25);
+  border-radius: 1.6rem;
+  backdrop-filter: blur(6px);
+}
+
+.palette[hidden] {
+  display: none;
+}
+
+.inks,
+.nibs {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.swatch,
+.nib {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--ink, #e6e6dc);
+  cursor: pointer;
+  transition: scale 0.15s ease, border-color 0.15s ease;
+}
+
+.swatch:hover,
+.nib:hover {
+  scale: 1.15;
+}
+
+.swatch[aria-checked="true"],
+.nib[aria-checked="true"] {
+  border-color: #fff;
+  scale: 1.2;
+}
+
+/* the nibs show their width */
+.nib {
+  background: none;
+  position: relative;
+}
+
+.nib::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: #e6e6dc;
+}
+
+.nib.fine::after {
+  width: 0.35rem;
+  height: 0.35rem;
+}
+
+.nib.fat::after {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+/* a sticker instead of a line */
+.palette .add-sticker {
+  padding: 0.35rem 0.9rem;
+  background: none;
+  border: 1px dashed rgb(230 230 220 / 0.6);
+  border-radius: 999px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.palette .add-sticker:hover,
+.palette .add-sticker:focus-visible {
+  border-style: solid;
+  background: rgb(255 255 255 / 0.07);
+}
+
+/* a sticker chosen and waiting for its place */
+body.sticking #room.drawing .viewport {
+  cursor: copy;
+}
+
+.palette .done {
+  padding: 0.35rem 0.9rem;
+  background: none;
+  border: 1px solid rgb(230 230 220 / 0.5);
+  border-radius: 999px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.palette .done:hover,
+.palette .done:focus-visible {
+  border-color: #e6e6dc;
+  background: rgb(255 255 255 / 0.07);
+}
+
+/* what to draw with */
+.tools {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.tool {
+  padding: 0.3rem 0.65rem;
+  background: none;
+  border: 1px solid rgb(230 230 220 / 0.3);
+  border-radius: 999px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tool[aria-checked="true"] {
+  background: #e6e6dc;
+  border-color: #e6e6dc;
+  color: #000;
+}
+
+.nibs[hidden] {
+  display: none;
+}
+
+/* --- stickers ------------------------------------------------------------------------ */
+
+/* nothing on a face hangs off its edge */
+.face.drawable {
+  overflow: hidden;
+}
+
+/* where the pile goes, under the bowl: a mark on the floor */
+.face.pile-spot {
+  background: none;
+  border: 2px dashed rgb(230 230 220 / 0.16);
+  cursor: pointer;
+}
+
+/* a wad of ten: paper, with the sticker showing on top */
+.wad {
+  --mat: #9c9686;
+}
+
+.wad-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* what's in the pile, and what's yours */
+.picker {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  overflow: auto;
+  background: rgb(0 0 0 / 0.72);
+}
+
+.picker[hidden] {
+  display: none;
+}
+
+.picker-inner {
+  width: min(26rem, 100%);
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+  padding: 1.2rem;
+  background: #0b0b0b;
+  border: 1px solid rgb(230 230 220 / 0.2);
+  font-size: 0.78rem;
+}
+
+.picker-inner h2 {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  font-weight: normal;
+  letter-spacing: 0.25em;
+}
+
+.picker-inner p {
+  margin: 0;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.picker-close {
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  background: none;
+  border: 1px solid rgb(230 230 220 / 0.35);
+  border-radius: 2px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- the verb under the cursor ---------------------------------------------------- */
+/* Hover something you can act on and the word for it is written just below
+   the pointer: draw, push, half flush. */
+
+.verb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: 1.3rem 0 0 0.9rem;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px solid rgb(230 230 220 / 0.6);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  text-shadow: 0 1px 3px #000, 0 0 12px #000;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: translate;
+}
+
+.verb[hidden] {
+  display: none;
+}
+
+#room.verbing .viewport {
+  cursor: pointer;
 }
 
 /* --- looking around ------------------------------------------------------------ */
@@ -307,6 +701,7 @@
   align-items: flex-end;
   gap: 1rem;
   font-size: 0.78rem;
+  pointer-events: none;
 }
 
 .room-timer {
@@ -317,6 +712,7 @@
 .actions {
   display: flex;
   gap: 0.5rem;
+  pointer-events: auto;
 }
 
 .actions button {
@@ -337,18 +733,28 @@
   background: rgb(255 255 255 / 0.07);
 }
 
-.actions.busy button:not(.always) {
+/* mid-flush, mid-anything: the plumbing is spoken for */
+#room.busy .actions button:not(.always),
+#room.busy .flush {
   pointer-events: none;
   opacity: 0.35;
 }
 
 /* --- the picture ----------------------------------------------------------------- */
 
+/* the dark at the edges: wide when you arrive, and closing in as the clock
+   on the door runs down. room.js moves --sight once a second; the transition
+   makes that a slow creep rather than a step. */
 .room-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgb(0 0 0 / 0.8));
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent calc(var(--sight) * 50%),
+    rgb(0 0 0 / 0.96) calc(var(--sight) * 50% + 42%)
+  );
+  transition: --sight 1s linear;
 }
 
 /* film grain, so the flat colours don't band */
