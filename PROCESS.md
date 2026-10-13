@@ -1,20 +1,14 @@
 # Process overview
 
-<!-- TEMPLATE: replace everything in this file with your own account, this
-     comment included --- `pnpm check:evidence` fails while it's still here. -->
+This is a placeholder. The author's own account of how the work was directed,
+grounded and corrected is still to be written, and will replace this page.
 
-How you got from the brief to the harness, agentic workflow and stack behind
-this app, told however suits the work. The
-[final project brief](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/assessments/final-project/#what-you-submit)
-says what it covers and how long it runs.
+Until then, the record is the commit history. The app so far, in the order it
+was built:
 
-Markers follow the links you give them; they don't trawl the repo for evidence
-you didn't point at. A link to the record is one whose text is the commit hash,
-and it can sit anywhere in a sentence:
-[`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d) for one
-commit, or
-[`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
-for a range.
-
-`pnpm check:evidence` checks that this comment is gone and that every commit you
-link exists in this repo. Whether the account is any good is the marker's call.
+- [`07974cd`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rileyswinson/commit/07974cd): the corridor and its four doors, with live
+  occupied/vacant state
+- [`b8582d3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rileyswinson/commit/b8582d3): a first draft of the inside of a stall
+- [`de705db`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rileyswinson/commit/de705db): drawing on every surface, and making, sharing and
+  sticking stickers
+- [`e334270`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rileyswinson/commit/e334270): the sticker pile as a loose heap, with its limits
