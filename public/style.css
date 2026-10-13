@@ -877,9 +877,14 @@ body.sticking .door[aria-disabled="true"] {
   cursor: pointer;
 }
 
-.tile:hover,
+.tile:hover:not(:disabled),
 .tile:focus-visible {
   border-color: #e6e6dc;
+}
+
+.tile:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .tile-art {

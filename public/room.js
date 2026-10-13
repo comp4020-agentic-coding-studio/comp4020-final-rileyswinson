@@ -654,16 +654,16 @@ viewport.addEventListener("pointerup", finish);
 viewport.addEventListener("pointercancel", finish);
 
 // --- stickers ------------------------------------------------------------------
-// The pile under the bowl is where stickers change hands: each wad in it is ten copies of
-// one sticker, a thin slab, and the slabs stack, so the pile is as tall as
-// what's been left there.
+// The pile under the bowl is where stickers change hands. It's a heap, not a
+// stack: every copy lies loose on the floor, or on the ones under it, so the
+// heap is as big as what's been left there.
 
 // under the bowl, but not square under it: off to the left, forward, and askew
 const PILE_X = -8;
 const PILE_Z = TOILET + 10;
 const PILE_TURN = 14; // degrees
 const WAD_CM = 12; // a sticker's width
-const COPY_CM = 0.1; // how thick one copy is
+const COPY_CM = 0.12; // how much higher a sticker lies than the one under it
 
 // the spot on the floor where the pile goes, there even when the pile isn't
 const pileU = [Math.cos(rad(PILE_TURN)), 0, Math.sin(rad(PILE_TURN))];
@@ -684,32 +684,52 @@ world.append(spot, pileGroup);
 
 let pile = []; // [{ id, left }], bottom first
 
+// Every copy in the pile is a sticker of its own, dropped rather than
+// stacked: strewn round the spot at any angle, the kinds mixed up, each one
+// lying on whatever it landed on. Where each falls comes from its sticker
+// and which copy it is, so the heap looks the same every time and to
+// everyone, and taking one lifts one off rather than reshuffling the lot.
 function drawPile() {
   pileGroup.replaceChildren();
-  let top = 0.5; // cm off the floor so far
-  pile.forEach((wad, i) => {
-    // each wad lands a little off square, the same way every time
-    const h = [...wad.id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) | 0, i * 7919 + 7);
-    const jx = ((h & 15) - 7.5) * 0.12;
-    const jz = (((h >> 4) & 15) - 7.5) * 0.12;
-    const thick = Math.max(0.12, wad.left * COPY_CM);
-    const b = box("wad", null, WAD_CM, thick, WAD_CM, PILE_X + jx, -top, PILE_Z + jz);
-    b.style.transformOrigin = `${cm(PILE_X + jx)}px 0px ${cm(PILE_Z + jz)}px`;
-    b.style.transform = `rotateY(${(((h >> 8) & 31) - 15.5) * 1.6 - PILE_TURN}deg)`;
-    for (const f of b.children) f.dataset.verb = "pile";
-    b.querySelector(".f-top").append(stickers.img(wad.id, "wad-art"));
-    pileGroup.append(b);
-    top += thick;
-  });
+  const copies = [];
+  for (const wad of pile) {
+    for (let n = 0; n < wad.left; n++) {
+      const rand = seeded([...wad.id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) | 0, n * 7919 + 7));
+      copies.push({ id: wad.id, order: rand(), rand });
+    }
+  }
+  copies.sort((a, b) => a.order - b.order);
+  // the more there are, the further the heap spreads
+  const spread = Math.min(17, 6 + Math.sqrt(copies.length) * 1.1);
+  const lying = [];
+  for (const copy of copies) {
+    const { rand } = copy;
+    const far = spread * Math.pow(rand(), 0.7);
+    const around = rand() * Math.PI * 2;
+    const x = PILE_X + Math.cos(around) * far;
+    const z = PILE_Z + Math.sin(around) * far;
+    // it rests just above the highest thing under it
+    const y = lying.reduce((top, o) => (Math.hypot(o.x - x, o.z - z) < WAD_CM * 0.8 ? Math.max(top, o.y) : top), 0.4) + COPY_CM;
+    lying.push({ x, y, z });
+    const turn = rand() * Math.PI * 2;
+    const u = [Math.cos(turn), 0, Math.sin(turn)];
+    const v = [-Math.sin(turn), 0, Math.cos(turn)];
+    const half = cm(WAD_CM / 2);
+    const sticker = plane(null, "loose", 2 * half, 2 * half, add([cm(x), -cm(y), cm(z)], add(scale(u, -half), scale(v, -half))), u, v);
+    sticker.dataset.verb = "pile";
+    sticker.append(stickers.img(copy.id, "loose-art"));
+    pileGroup.append(sticker);
+  }
 }
 
 // the picker: what's in the pile to take, and what's yours to leave
 const picker = el.querySelector(".picker");
 
-function tile(id, label, onClick) {
+function tile(id, label, onClick, disabled = false) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "tile";
+  b.disabled = disabled;
   const tag = document.createElement("span");
   tag.textContent = label;
   b.append(stickers.img(id, "tile-art"), tag);
@@ -717,25 +737,29 @@ function tile(id, label, onClick) {
   return b;
 }
 
+const FULL = 10; // the most of one sticker a pile holds
+
 function renderPicker() {
   if (picker.hidden) return;
-  const counts = new Map();
-  for (const wad of pile) counts.set(wad.id, (counts.get(wad.id) ?? 0) + wad.left);
-  const carrying = Object.values(stickers.pocket).reduce((a, b) => a + b, 0);
-  picker.querySelector(".picker-note").textContent = !counts.size
-    ? "Nothing here yet."
-    : `Take one at a time.${carrying ? ` You're carrying ${carrying}.` : ""} Stick them with "add a sticker", when you're drawing.`;
+  const counts = new Map(pile.map((wad) => [wad.id, wad.left]));
+  picker.querySelector(".picker-note").textContent = counts.size
+    ? 'Take one of each. Stick them with "add a sticker", when you\'re drawing.'
+    : "Nothing here yet.";
   picker.querySelector(".picker-pile").replaceChildren(
     ...[...counts].map(([id, n]) => {
-      const mine = stickers.pocket[id];
-      return tile(id, mine ? `×${n} · you have ${mine}` : `×${n}`, () => room.onPile?.("take", id));
+      const have = !!stickers.pocket[id];
+      return tile(id, have ? `×${n} · you have one` : `×${n}`, () => room.onPile?.("take", id), have);
     }),
   );
   picker.querySelector(".picker-mine-note").textContent = stickers.mine.length
-    ? "Leave ten of one on the pile."
+    ? "Leave some of yours. The pile holds ten of each."
     : "You haven't made any. The sticker station is out in the corridor.";
   picker.querySelector(".picker-mine").replaceChildren(
-    ...stickers.mine.map(({ id }) => tile(id, "leave 10", () => room.onPile?.("leave", id))),
+    ...stickers.mine.map(({ id }) => {
+      const there = counts.get(id) ?? 0;
+      const label = there >= FULL ? "ten there already" : there ? `top up to ${FULL}` : `leave ${FULL}`;
+      return tile(id, label, () => room.onPile?.("leave", id), there >= FULL);
+    }),
   );
 }
 

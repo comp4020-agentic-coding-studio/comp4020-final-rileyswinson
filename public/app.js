@@ -260,6 +260,8 @@ function connect(retry = 500) {
   socket.addEventListener("open", () => {
     retry = 500;
     status.textContent = "";
+    // the stickers this browser remembers making: does the server still have them?
+    if (stickers.mine.length) send({ type: "sticker:mine", ids: stickers.mine.map((m) => m.id) });
   });
 
   socket.addEventListener("message", (event) => {
@@ -293,6 +295,8 @@ function connect(retry = 500) {
     } else if (msg.type === "pocket") {
       stickers.learn(msg.stickers);
       stickers.setPocket(msg.pocket);
+    } else if (msg.type === "sticker:mine") {
+      stickers.keepMine(msg.known);
     } else if (msg.type === "sticker:made") {
       station.made(msg.id, msg.png);
     } else if (msg.type === "sticker:refused") {

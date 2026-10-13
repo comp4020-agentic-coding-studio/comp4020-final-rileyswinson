@@ -44,17 +44,28 @@ const MAX_MARKS_PER_FACE = 2000; // after that the oldest go under the newest
 const MAX_MARKS_PER_STALL = 8000;
 const FACE_NAME = /^[a-z-]+(\/[a-z0-9-]+)?$/;
 
-const WAD = 10; // copies in a wad
+const WAD = 10; // copies in a full wad, and the most of any one sticker a pile holds
 const MAX_WADS = 20; // the pile can only get so tall before it meets the bowl
 const STICKER_CM = 12;
 const MAX_OUTSIDE_PER_DOOR = 80;
 const MAX_STICKERS = 2000;
-const MAX_POCKET = 40; // picked-up stickers one person can carry
+const MAX_POCKET = 40; // different picked-up stickers one person can carry, one copy of each
 const MAX_PNG = 60000; // characters of data URL; simple art is a few thousand
 const PNG = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
 const STICKER_ID = /^[a-z0-9]{10}$/;
 
 const emptyStall = (): Stall => ({ bowl: emptyBowl(), marks: {}, pile: [] });
+
+// a pile as it's kept now: one wad per sticker, ten copies at most
+function oneWadEach(pile: Wad[]): Wad[] {
+  const wads = new Map<string, Wad>();
+  for (const { id, left } of pile) {
+    const wad = wads.get(id) ?? { id, left: 0 };
+    wad.left = Math.min(WAD, wad.left + left);
+    wads.set(id, wad);
+  }
+  return [...wads.values()];
+}
 const num = (n: unknown, lo: number, hi: number): n is number => typeof n === "number" && Number.isFinite(n) && n >= lo && n <= hi;
 const tenth = (n: number) => Math.round(n * 10) / 10;
 
@@ -85,12 +96,14 @@ export class Stalls {
           // lines and stickers used to be kept apart, the stickers on top
           for (const [face, list] of Object.entries(s.strokes ?? {})) marks[face] = [...list];
           for (const [face, list] of Object.entries(s.placed ?? {})) (marks[face] ??= []).push(...list);
-          this.stalls[i] = { bowl: s.bowl, marks, pile: s.pile ?? [] };
+          this.stalls[i] = { bowl: s.bowl, marks, pile: oneWadEach(s.pile ?? []) };
         });
         if (!Array.isArray(saved)) {
           saved.outside?.slice(0, count).forEach((d, i) => (this.outside[i] = d ?? []));
           this.makers = saved.makers ?? {};
           this.pockets = saved.pockets ?? {};
+          // one copy of each is all anyone carries
+          for (const pocket of Object.values(this.pockets)) for (const id of Object.keys(pocket)) pocket[id] = 1;
         }
       }
       if (existsSync(this.stickerFile)) this.stickers = JSON.parse(readFileSync(this.stickerFile, "utf8"));
@@ -217,25 +230,43 @@ export class Stalls {
     return true;
   }
 
-  // a wad of copies goes on top of the pile
-  leave(i: number, id: unknown): boolean {
-    if (!this.has(id)) return false;
+  // Brings one sticker's wad in a pile up to ten copies: a new wad on top if
+  // there's none of it, a top-up if there's some. A pile never holds more
+  // than ten of any one sticker, so with ten there already nothing changes.
+  private stock(i: number, id: string): boolean {
     const pile = this.stalls[i].pile;
-    pile.push({ id, left: WAD });
-    if (pile.length > MAX_WADS) pile.shift(); // the bottom of the pile got swept
+    const wad = pile.find((w) => w.id === id);
+    if (wad && wad.left >= WAD) return false;
+    if (wad) wad.left = WAD;
+    else {
+      pile.push({ id, left: WAD });
+      if (pile.length > MAX_WADS) pile.shift(); // the bottom of the pile got swept
+    }
     this.touched();
     return true;
   }
 
-  // one copy off the first wad that has any, into this person's pocket
+  // someone leaves ten of a sticker on the pile, or as many as make it ten
+  leave(i: number, id: unknown): boolean {
+    return this.has(id) && this.stock(i, id);
+  }
+
+  // the stickers that are always there are always there: whenever someone
+  // comes in, there are ten of each
+  restock(i: number): void {
+    for (const id of Object.keys(DEFAULT_STICKERS)) this.stock(i, id);
+  }
+
+  // one copy off the pile, into this person's pocket, if they haven't one
+  // of that sticker already
   take(who: string, i: number, id: unknown): boolean {
     const pocket = this.pockets[who] ?? {};
-    if (Object.values(pocket).reduce((a, b) => a + b, 0) >= MAX_POCKET) return false;
+    if (typeof id !== "string" || pocket[id] || Object.keys(pocket).length >= MAX_POCKET) return false;
     const pile = this.stalls[i].pile;
     const at = pile.findIndex((w) => w.id === id && w.left > 0);
     if (at === -1) return false;
     if (--pile[at].left === 0) pile.splice(at, 1);
-    pocket[id as string] = (pocket[id as string] ?? 0) + 1;
+    pocket[id] = 1;
     this.pockets[who] = pocket;
     this.touched();
     return true;

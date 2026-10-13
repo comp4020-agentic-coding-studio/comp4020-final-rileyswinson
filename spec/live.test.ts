@@ -214,34 +214,51 @@ it("a sticker goes from its maker, by way of the pile, onto walls and onto a doo
     expect(found.marks!["wall-right"].slice(-3)).toEqual([under, stuck, over]);
     expect(found.stickers![id]).toBe(DOT);
 
-    // it isn't theirs, so they can't stick it until they've taken one
+    // every stall has ten of each of the usual three when you come in
+    for (const usual of ["trash00001", "trash00002", "trash00003"]) {
+      expect(found.pile!.find((w) => w.id === usual)).toEqual({ id: usual, left: 10 });
+    }
+
+    // it isn't theirs, so they can't stick it until they've taken one, and
+    // one is all they can carry of it
     const where = { id, u: 20, v: 150, r: -8 };
     b.ws.send(JSON.stringify({ type: "stick", face: "door", sticker: where }));
     b.ws.send(JSON.stringify({ type: "pile:take", id }));
     expect((await b.next((m) => m.type === "pocket")).pocket).toEqual({ [id]: 1 });
     expect((await b.next((m) => m.type === "pile")).pile!.find((w) => w.id === id)).toEqual({ id, left: 9 });
     b.ws.send(JSON.stringify({ type: "pile:take", id }));
-    expect((await b.next((m) => m.type === "pocket")).pocket).toEqual({ [id]: 2 });
-    await b.next((m) => m.type === "pile");
+    await b.next((m) => m.type === "pile:denied");
 
-    // one goes on the back of the door, which spends it
+    // leaving more only ever brings it back up to ten; with ten there, it does nothing
+    b.ws.send(JSON.stringify({ type: "pile:leave", id }));
+    expect((await b.next((m) => m.type === "pile")).pile!.find((w) => w.id === id)).toEqual({ id, left: 10 });
+    b.ws.send(JSON.stringify({ type: "pile:leave", id }));
+
+    // the one they have goes on the back of the door, which spends it, and then they can take another
     b.ws.send(JSON.stringify({ type: "stick", face: "door", sticker: where }));
-    expect((await b.next((m) => m.type === "pocket")).pocket).toEqual({ [id]: 1 });
+    expect((await b.next((m) => m.type === "pocket")).pocket).toEqual({});
     await b.next((m) => m.type === "stuck");
+    b.ws.send(JSON.stringify({ type: "pile:take", id }));
+    b.ws.send(JSON.stringify({ type: "pile:take", id: "trash00001" }));
+    expect((await b.next((m) => m.type === "pocket" && Object.keys(m.pocket!).length === 2)).pocket).toEqual({ [id]: 1, trash00001: 1 });
+    const taken = await b.next((m) => m.type === "pile" && m.pile!.find((w) => w.id === "trash00001")!.left === 9);
+    expect(taken.pile!.find((w) => w.id === id)).toEqual({ id, left: 9 });
 
-    // the other goes out with them and onto the outside of a door, where everyone sees it
+    // out with them it goes, onto the outside of a door, where everyone sees it
     b.ws.send(JSON.stringify({ type: "leave" }));
     await a.next((m) => m.type === "doors" && !m.doors![door].occupied);
     b.ws.send(JSON.stringify({ type: "stick:outside", door, sticker: { id, u: 0.3, v: 0.2, r: -4 } }));
     const seen = await a.next((m) => m.type === "outside" && m.outside![door].some((s) => s.id === id));
     expect(seen.stickers![id]).toBe(DOT);
-    expect((await b.next((m) => m.type === "pocket")).pocket).toEqual({});
+    expect((await b.next((m) => m.type === "pocket")).pocket).toEqual({ trash00001: 1 });
 
-    // and now they've none left, so there's no second one
-    const count = seen.outside![door].filter((s) => s.id === id).length;
-    b.ws.send(JSON.stringify({ type: "stick:outside", door, sticker: { id, u: 0.6, v: 0.6, r: 0 } }));
-    await expect(a.next((m) => m.type === "outside")).rejects.toThrow();
-    expect(count).toBe(1);
+    // and the usual one they took has been put back by the time the next person's in
+    a.ws.send(JSON.stringify({ type: "enter", door }));
+    const restocked = await a.next((m) => m.type === "stall" && m.door === door);
+    expect(restocked.pile!.find((w) => w.id === "trash00001")).toEqual({ id: "trash00001", left: 10 });
+    expect(restocked.pile!.find((w) => w.id === id)).toEqual({ id, left: 9 });
+    a.ws.send(JSON.stringify({ type: "leave" }));
+    await b.next((m) => m.type === "doors" && !m.doors![door].occupied);
   } finally {
     a.ws.close();
     b.ws.close();

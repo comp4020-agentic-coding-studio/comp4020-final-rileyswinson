@@ -81,6 +81,17 @@ export const stickers = {
     changed();
   },
 
+  // The server's list of which of yours it still has. One it has lost (its
+  // data was cleared) can't be left or stuck any more, so it's forgotten
+  // here too. It answers for 200 at a time; any past that are left alone.
+  keepMine(known) {
+    const kept = this.mine.filter((m, i) => i >= 200 || known.includes(m.id));
+    if (kept.length === this.mine.length) return;
+    this.mine = kept;
+    write(kept);
+    changed();
+  },
+
   setPocket(pocket) {
     this.pocket = pocket ?? {};
     changed();
@@ -123,7 +134,7 @@ export const stickers = {
       chooser.querySelector(".chooser-mine-note").textContent = this.mine.length
         ? ""
         : "None yet. Make some at the sticker station, out in the corridor.";
-      chooser.querySelector(".chooser-pocket").replaceChildren(...carried.map(([id, n]) => tile(id, `×${n}`)));
+      chooser.querySelector(".chooser-pocket").replaceChildren(...carried.map(([id]) => tile(id, "picked up")));
       chooser.querySelector(".chooser-pocket-note").textContent = carried.length
         ? ""
         : "None yet. There's a pile under every toilet.";

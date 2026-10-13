@@ -510,12 +510,13 @@ body.sticking #room.drawing .viewport {
   cursor: pointer;
 }
 
-/* a wad of ten: paper, with the sticker showing on top */
-.wad {
-  --mat: #9c9686;
+/* one loose sticker in the heap: nothing but the sticker */
+.face.loose {
+  background: none;
+  cursor: pointer;
 }
 
-.wad-art {
+.loose-art {
   position: absolute;
   inset: 0;
   width: 100%;

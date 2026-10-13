@@ -46,13 +46,15 @@ finish. The ones you make are yours to stick as often as you like, and your
 browser remembers them. The server keeps every one.
 
 To pass them on, crouch under a toilet. There's a spot on the floor there
-where you can leave ten copies of one of yours, as a wad; the wads stack, so
-the pile is as tall as what's been left. Anyone in that stall can take copies
-from the pile, one at a time, and carry them: to stick up in that stall, in
-another, or on the outside of any door in the corridor, where everyone sees
-it. Sticking someone else's sticker uses up the copy. Every stall starts with
-a small pile of three that were already there: a name tag, a fruit sticker
-and a price.
+where you can leave ten copies of one of yours. They land loose, on the floor
+and on each other, so the heap is as big as what's been left. A pile holds ten of any one sticker
+at most, so leaving more only tops it back up. Anyone in that stall can take
+from the pile, one copy of each sticker at a time, and carry them: to stick
+up in that stall, in another, or on the outside of any door in the corridor,
+where everyone sees it. Sticking someone else's sticker uses up the copy, and
+then you can take another. Every stall keeps three that were already there (a
+name tag, a fruit sticker and a price), and whenever someone comes in there
+are ten of each.
 
 ## Running it
 

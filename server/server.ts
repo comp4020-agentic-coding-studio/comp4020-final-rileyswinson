@@ -170,7 +170,10 @@ wss.on("connection", (ws, req) => {
       return;
     }
     if (msg.type === "enter" && typeof msg.door === "number") {
-      if (doors.enter(id, msg.door)) send(ws, stallMsg(msg.door));
+      if (doors.enter(id, msg.door)) {
+        stalls.restock(msg.door); // ten of each of the usual stickers, for whoever's just come in
+        send(ws, stallMsg(msg.door));
+      }
       else send(ws, { type: "denied", door: msg.door });
     } else if (msg.type === "stroke") {
       // a line drawn on something in the stall: kept, and passed to any
@@ -183,14 +186,17 @@ wss.on("connection", (ws, req) => {
       // a new sticker, made out in the corridor; its maker gets the id
       const made = stalls.make(msg.png, id);
       send(ws, made ? { type: "sticker:made", id: made, png: msg.png } : { type: "sticker:refused" });
+    } else if (msg.type === "sticker:mine") {
+      // which of the stickers a browser remembers making are still here
+      send(ws, { type: "sticker:mine", known: Object.keys(stalls.pngs(msg.ids)) });
     } else if (msg.type === "sticker:get") {
       send(ws, { type: "stickers", stickers: stalls.pngs(msg.ids) });
     } else if (msg.type === "pile:leave") {
-      // the pile under the bowl: a wad of ten copies goes on top
+      // the pile under the bowl: ten of one of yours, or as many as make it ten
       const door = doors.doorOf(id);
       if (door !== null && stalls.leave(door, msg.id)) toStall(door, pileMsg(door));
     } else if (msg.type === "pile:take") {
-      // one copy comes off the pile and goes with you
+      // one copy comes off the pile and goes with you, if you haven't one already
       const door = doors.doorOf(id);
       if (door === null) return;
       if (!stalls.take(id, door, msg.id)) return send(ws, { type: "pile:denied", id: msg.id });
