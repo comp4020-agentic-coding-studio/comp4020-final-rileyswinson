@@ -1,81 +1,26 @@
 # Stalls
 
-Bathroom-wall graffiti, online. There are four stalls, and at most four people
-can be inside at once. Each one gets a timed visit, like a public toilet whose
-door unlocks itself after a while. There are no accounts.
+My application is based on bathroom grafitti. In real life, sometimes the grafitti is quite creative; sometimes it is vulgar; sometimes people literally smear their excretions across the wall (I'm looking at you, ANU School of Music bathrooms). I know many people want to garfitti bathroom walls, but because of guilt and social norms, most don't. And in our increasingly online world; in our increasingly monitored world making it harder to "get away with things," I bathroom vandalism oddly raw, real, and human -- especially when certain areas become known hotstops (Like the Mooseheads bathrooms).
 
-## The hallway
+My goal is to capture the common desire to join the vandalism in a censorship-free side experience that replicates bathroom stalls, and permits interacting with it either fully anonymously, or in a way that encourages ownership and fun between people.
 
-A black corridor holds four outlined doors. Each door has an occupied/vacant
-slider: red and pushed left when someone is inside, green and pushed right
-when it's free. Hovering over a vacant door creaks it open, and white light
-spills out across the floor. Clicking an open door takes you inside. A door's
-state reaches everyone else in the hallway as it changes, with no reload.
+My UI/UX is havily inspired by Inscryption's grimey aesthetic and sound design, and the vularness is part of the experience, inspired by Edumun McMillen games.
 
-## Inside
+## What "good" means for this app
 
-The stall is a small box you look around from fixed spots, the way a
-point-and-click works: chevrons at the screen's edges (or the arrow keys) turn
-you to the left partition, the right one, or the back of the door, and facing
-the toilet you can look straight ahead, down at it, up at the light, or crouch
-to see under the bowl. Looking straight or down, you can still turn. One coloured lamp lights the lot, a different colour in each stall, and the dark at the edges
-of your view closes in as your time runs out.
+"Good" can mean a variety of things for this app. First, it must be easy to understand for poeple who I give it to. My main target audiance are my friends and the students in this course. Consequently, this group is rather tech-literate and have played games before. I do not have a tutorial; users should be able to go off a verbal brief of the game ("It's bathroom vandalism and you can draw anywhere in the stall!") and figure out the controls within a few minutes.
 
-Anything you can see, you can draw on, except the floor. Hover it and the word
-*draw* appears; click and you're taken right up to that spot. There are three
-things to draw with, in ten colours: a paint pen, bright and solid; a
-permanent marker, duller and see-through; and a mini spray can, very wide and
-made of specks. Up close you can also *add a sticker*: choose one, then click
-where it goes. Lines and stickers go on in the order you put them, each over
-whatever was there, so you can draw across a sticker or stick one over
-another. It all stays: on that wall, in that stall, for whoever comes in
-next, and it survives the server restarting.
+It must be accessible on chrome most mobile phones and laptop. This was achieved through testing myself.
+It must work well for asyncronous play and in-person play and allow creativity and interatctivity. This is harder to measure, because it requires active testing in groups to determine if it succeeds at engaging people.
 
-You can sit down, and what you do there is heard, muffled, by everyone in the
-corridor. The flush plate has a half and a full. What goes in the bowl stays
-in it, for the next person too, until a flush takes it. Sliding the latch on
-the back of the door lets you out. The door lets itself open after five
-minutes.
+To keep the UI simple, and the inevitable disogranized mess of colors in the stalls looking vibrant and consistency, I decided to have a limited set of pre-determined colors. In order to work well on mobile, looking around the 3D scene uses arrows at the side of the screen.
 
-## Sound
+## My tests
 
-There are only a few sounds, on purpose. A door creaks when you hover it.
-Knocking on an occupied door is heard by everyone, and jolts the view of
-whoever's inside it a moment later. Every button and choice makes the same
-small click. The pen, the marker and the spray can each sound while a line is
-being drawn, and a sticker going on peels faintly. A clock ticks when you have
-thirty seconds left, and again through the last five.
+I discovered that the limit of 4 stalls does limit the experience if more than about 6 people wish to play. However, this limitation encouraged people to come back later when other's weren't using it. I considered some ways to change this, but I decided that this limitation is permissable given there will be virtually no situations were more than 4 people wish to use this app naturally. The goal here was to make something enjoyable for my friends and the few people I share it with -- not to create a successful and shareable online thing. If I wanted to expand it, I could have it ensure at least 1 empty stall is given to each player, but this results in asyncrynosity between users that removes the immedaite interation of "Go see what I did!" that my current version keeps so well.
 
-Those are all made in the browser from noise and a few oscillators. Pissing,
-shitting and flushing are recordings, all public domain; `public/audio/CREDITS.md`
-says where each came from. Everything goes through one bus that squashes it
-hard and narrows it to the middle of the band, like a cheap speaker in a tiled
-room. Browsers keep a page silent until you first click or press a key.
+I tested asyncrounsly by sharing it in group chats, and in-person during the labs. People had genuine fun with it. In one lab, a group was constantly laughting and messing around with eachother. All the little interactive features and events I added created little moments of discovery which continuously re-vitalized the experience for them. One of them even decided to create a plugin for my game so they could draw any uploaded image onto the wall.
 
-## Stickers
+It was intereseting seeing random things pop up around the stalls. There are many works were I have no idea who made them. Someone really liked pokemon, and left a bunch of pokemon stickers everywhere. They were very popular and are now in the stalls, and consequently, there are not many are left to take.
 
-Stickers are made at the sticker station, which is out in the corridor and
-nowhere else. You draw an outline, in as many goes as you like, until its two
-ends meet; pick the colour of its edge and of its inside; draw on it; and
-finish. The ones you make are yours to stick as often as you like, and your
-browser remembers them. The server keeps every one.
-
-To pass them on, crouch under a toilet. There's a spot on the floor there
-where you can leave ten copies of one of yours. They land loose, on the floor
-and on each other, so the heap is as big as what's been left. A pile holds ten of any one sticker
-at most, so leaving more only tops it back up. Anyone in that stall can take
-from the pile, one copy of each sticker at a time, and carry them: to stick
-up in that stall, in another, or on the outside of any door in the corridor,
-where everyone sees it. Sticking someone else's sticker uses up the copy, and
-then you can take another. Every stall keeps three that were already there (a
-name tag, a fruit sticker and a price), and whenever someone comes in there
-are ten of each.
-
-## Running it
-
-```sh
-pnpm install
-pnpm start          # http://localhost:8080
-pnpm check          # against the running app (it draws on its walls)
-pnpm check:fresh    # the same spec, against a throwaway copy with its own data
-```
+I have censored the most vulgar of what people generated, but have otherwise left the stalls as my crit left them.
