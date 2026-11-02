@@ -7,7 +7,7 @@
 // data volume.
 
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { emptyBowl, useBowl, type Bowl, type BowlUse } from "./bowls.ts";
 import { DEFAULT_STICKERS, starterPile } from "./defaults.ts";
@@ -311,13 +311,21 @@ export class Stalls {
     clearTimeout(this.saveTimer);
     try {
       const saved: Saved = { stalls: this.stalls, outside: this.outside, makers: this.makers, pockets: this.pockets };
-      writeFileSync(this.placeFile, JSON.stringify(saved));
+      writeWhole(this.placeFile, JSON.stringify(saved));
       if (this.stickersDirty) {
-        writeFileSync(this.stickerFile, JSON.stringify(this.stickers));
+        writeWhole(this.stickerFile, JSON.stringify(this.stickers));
         this.stickersDirty = false;
       }
     } catch (err) {
       console.error(`could not write to ${this.placeFile}`, err);
     }
   }
+}
+
+// A crash halfway through a write can't leave half a file behind: what's on the
+// disk under this name is always a whole save, the last one or the one before.
+function writeWhole(file: string, text: string): void {
+  const tmp = `${file}.tmp`;
+  writeFileSync(tmp, text, { flush: true });
+  renameSync(tmp, file);
 }
