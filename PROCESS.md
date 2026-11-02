@@ -45,17 +45,7 @@ Second, I know that simply asking AI to generate sounds goes very poorly. Howeve
 
 I tested interactive elements by using a window and an incognito window.
 
-But, overall, the AI was very competent at creating the general infrastructure needed to support my ideas. But anything that required an understanding of what might be appealing to a human - 
-So, I added smaller things:
-
-- Going to the toilet with the "piss" and "shit" options. People from other stalls can hear these sounds effects, and if you do not flush the toilet, it stays there for the next person.
-- Players can "knock" on occupied stalls, which makes the screen of the person inside shake.
-- A 5-minute timer kicks people out the stalls so abandoned tabs get removed. 
-- Random light flickering event.
-- Other small interactionss
-
-The largest thing I added were stickers. They are made with the "sticker station" button at the bottom of the screen when not inside any stalls. They can be placed anywhere -- including on the doors in the hallway -- and can be left underneath the toilet in a pile for other people to take and use.
-UI/UX, sound design, any movement -- the AI did terribly at, and I had to describe in great detail what I wanted, which of course required a clear vision for the work.
+But, overall, the AI was very competent at creating the general infrastructure needed to support my ideas. But anything that required an understanding of what might be appealing to a human - UI/UX, sound design, any movement -- the AI did terribly at, and I had to describe in great detail what I wanted, which of course required a clear vision for the work.
 
 The stack is deliberately small: one Node server with two dependencies, `ws` for WebSockets and `marked` to render the README, and plain JavaScript in the browser with no build step ([`07974cd`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rileyswinson/commit/07974cd)). WebSockets suit the app because the server alone decides who gets a stall, and knocks and noises need to reach everyone immediately. The 3D is CSS transforms with a 2D canvas on each wall rather than WebGL, so every wall can be directly hovered, clicked and drawn on. The cost is the harsh lighting I wanted ([`b8582d3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rileyswinson/commit/b8582d3), [`de705db`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-rileyswinson/commit/de705db)).
 
